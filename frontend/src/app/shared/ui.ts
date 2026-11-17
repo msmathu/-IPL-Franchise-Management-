@@ -1,4 +1,4 @@
-import { Component, ElementRef, OnDestroy, computed, effect, inject, input, output, viewChild } from '@angular/core';
+import { Component, ElementRef, OnDestroy, computed, effect, inject, input, output, signal, viewChild } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MAT_DIALOG_DATA, MatDialog, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
@@ -93,16 +93,45 @@ export class StatusChip {
   });
 }
 
-/** Franchise "logo": coloured monogram (no protected team branding is used). */
+/**
+ * Franchise badge: the franchise's own logo when a licensed logo URL has been saved, otherwise the short code on the
+ * team colour (no protected branding is bundled with the app).
+ */
 @Component({
   selector: 'app-monogram',
-  template: `<span class="monogram" [style.background]="color()" [style.width.px]="size()" [style.height.px]="size()" [style.font-size.px]="size() * 0.38">{{ initials() }}</span>`,
+  template: `@if (logoUrl() && !failed()) {
+      <img class="monogram logo" [src]="logoUrl()" [alt]="name()" [style.width.px]="size()" [style.height.px]="size()" (error)="failed.set(true)" />
+    } @else {
+      <span class="monogram" [style.background]="color()" [style.width.px]="size()" [style.height.px]="size()" [style.font-size.px]="size() * (label().length > 3 ? 0.28 : 0.36)" [attr.aria-label]="name()">{{ label() }}</span>
+    }`,
 })
 export class Monogram {
   readonly name = input.required<string>();
   readonly color = input('#1d4ed8');
   readonly size = input(32);
-  readonly initials = computed(() => this.name().split(/\s+/).filter(Boolean).map((w) => w[0]).slice(0, 2).join('').toUpperCase());
+  /** Short code such as "MI" or "CSK"; falls back to the initials of the name. */
+  readonly code = input<string | null | undefined>(null);
+  readonly logoUrl = input<string | null | undefined>(null);
+  readonly failed = signal(false);
+  readonly label = computed(() => this.code() || this.name().split(/\s+/).filter(Boolean).map((w) => w[0]).slice(0, 3).join('').toUpperCase());
+}
+
+/** Player picture: the saved (licensed) photo URL, or initials on a neutral colour. */
+@Component({
+  selector: 'app-avatar',
+  template: `@if (photoUrl() && !failed()) {
+      <img class="avatar-img" [src]="photoUrl()" [alt]="name()" [style.width.px]="size()" [style.height.px]="size()" (error)="failed.set(true)" />
+    } @else {
+      <span class="avatar-img" [style.background]="color()" [style.width.px]="size()" [style.height.px]="size()" [style.font-size.px]="size() * 0.36">{{ initials() }}</span>
+    }`,
+})
+export class PlayerAvatar {
+  readonly name = input.required<string>();
+  readonly photoUrl = input<string | null | undefined>(null);
+  readonly color = input('#334155');
+  readonly size = input(32);
+  readonly failed = signal(false);
+  readonly initials = computed(() => this.name().replace(/\(.*\)/, '').split(/\s+/).filter(Boolean).map((w) => w[0]).slice(0, 2).join('').toUpperCase());
 }
 
 @Component({

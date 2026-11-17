@@ -21,7 +21,8 @@ public class PlayerRoleType
     public int SortOrder { get; set; }
 }
 
-public enum BattingHand { RightHand, LeftHand }
+/// <summary>Unknown = not published by the data source.</summary>
+public enum BattingHand { RightHand, LeftHand, Unknown }
 
 public enum BowlingType
 {
@@ -33,6 +34,8 @@ public enum BowlingType
     LegSpin,
     LeftArmOrthodox,
     LeftArmWristSpin,
+    /// <summary>Bowls, but the style is not published by the data source.</summary>
+    Unknown,
 }
 
 public enum PlayerStatus
@@ -55,7 +58,8 @@ public class Player : AuditableEntity, ISoftDelete
     public string Code { get; set; } = "";
     public string FullName { get; set; } = "";
     public string DisplayName { get; set; } = "";
-    public DateOnly DateOfBirth { get; set; }
+    /// <summary>Null when the data source does not publish it.</summary>
+    public DateOnly? DateOfBirth { get; set; }
     public int CountryId { get; set; }
     public Country? Country { get; set; }
     public string? PhotoUrl { get; set; }

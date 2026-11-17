@@ -11,11 +11,11 @@ import { filter, interval } from 'rxjs';
 import { Api } from '../../core/api';
 import { Auth } from '../../core/auth';
 import { InrPipe, P, Realtime, Toast, formatInr } from '../../core/services';
-import { Monogram, PageHeader, StateView, StatusChip, confirmAction } from '../../shared/ui';
+import { Monogram, PageHeader, PlayerAvatar, StateView, StatusChip, confirmAction } from '../../shared/ui';
 
 @Component({
   selector: 'app-live-auction',
-  imports: [PageHeader, StateView, StatusChip, Monogram, RouterLink, InrPipe, DatePipe, MatButtonModule, MatIconModule, MatProgressBarModule],
+  imports: [PageHeader, StateView, StatusChip, Monogram, PlayerAvatar, RouterLink, InrPipe, DatePipe, MatButtonModule, MatIconModule, MatProgressBarModule],
   template: `
     <div class="page">
       <app-state [loading]="res.isLoading() && !live()" [error]="res.error()" (retry)="res.reload()">
@@ -38,10 +38,10 @@ import { Monogram, PageHeader, StateView, StatusChip, confirmAction } from '../.
             <section class="card block">
               @if (a.currentLot; as lot) {
                 <div class="lot-head">
-                  <div class="avatar">{{ initials(lot.playerName) }}</div>
+                  <app-avatar [name]="lot.playerName" [photoUrl]="lot.photoUrl" color="#1e40af" [size]="84" />
                   <div>
                     <h2 class="name">{{ lot.playerName }}</h2>
-                    <p class="muted">{{ lot.role }} · {{ lot.country }} · age {{ lot.age }} · {{ lot.isCapped ? 'Capped' : 'Uncapped' }}@if (lot.isOverseas) { <span class="tag os">Overseas</span> }</p>
+                    <p class="muted">{{ lot.role }} · {{ lot.country }}{{ lot.age !== null ? ' · age ' + lot.age : '' }} · {{ lot.isCapped ? 'Capped' : 'Uncapped' }}@if (lot.isOverseas) { <span class="tag os">Overseas</span> }</p>
                     <p class="muted small">Set {{ lot.setNumber }} — {{ lot.setName }} · lot {{ lot.lotNumber }}</p>
                   </div>
                 </div>

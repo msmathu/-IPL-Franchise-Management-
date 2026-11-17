@@ -30,7 +30,7 @@ public class DemoSeedOptions
 /// </summary>
 public class DemoSeeder(AppDbContext db, IPasswordHasher<User> hasher, DemoSeedOptions options, ILogger<DemoSeeder> log)
 {
-    public const string Source = "Demo generator (synthetic) — not real statistics";
+    public const string Source = "Demo generator (synthetic, fictional player) — not real statistics";
     private readonly Rng rng = new(2026);
     private readonly DateTime now = DateTime.UtcNow;
     private DateOnly Today => DateOnly.FromDateTime(now);
@@ -64,241 +64,139 @@ public class DemoSeeder(AppDbContext db, IPasswordHasher<User> hasher, DemoSeedO
 
     private async Task SeedCoreAsync(CancellationToken ct)
     {
-        log.LogInformation("Seeding the fictional demo league…");
         var roles = await db.PlayerRoles.ToDictionaryAsync(r => r.Code, ct);
         var countries = await db.Countries.ToDictionaryAsync(c => c.Code, ct);
 
         // ---------------- Competitions & seasons ----------------
-        Competition C(string code, string name, CompetitionType t, MatchFormat f, int level) => new() { Code = code, Name = name, Type = t, Format = f, Level = level, IsDemo = true };
-        var dpl = C("DPL", "Demo Premier League", CompetitionType.Franchise, MatchFormat.T20, 5);
-        var otl = C("DOTL", "Demo Overseas T20 League", CompetitionType.Franchise, MatchFormat.T20, 4);
-        var dt20 = C("DT20", "Demo Domestic T20 Trophy", CompetitionType.Domestic, MatchFormat.T20, 3);
-        var dod = C("DODC", "Demo Domestic One-Day Cup", CompetitionType.Domestic, MatchFormat.ListA, 3);
-        var dfc = C("DFCC", "Demo First-Class Championship", CompetitionType.Domestic, MatchFormat.FirstClass, 3);
-        var t20i = C("DT20I", "Demo T20 Internationals", CompetitionType.International, MatchFormat.T20I, 5);
-        var odi = C("DODI", "Demo One-Day Internationals", CompetitionType.International, MatchFormat.ODI, 5);
-        var test = C("DTEST", "Demo Test Matches", CompetitionType.International, MatchFormat.Test, 5);
-        db.Competitions.AddRange(dpl, otl, dt20, dod, dfc, t20i, odi, test);
+        // Real league entries are reference data; the demo-prospect competitions are clearly fictional.
+        Competition C(string code, string name, CompetitionType t, MatchFormat f, int level, bool demo) => new() { Code = code, Name = name, Type = t, Format = f, Level = level, IsDemo = demo };
+        db.Competitions.AddRange(
+            C("IPL", "Indian Premier League", CompetitionType.Franchise, MatchFormat.T20, 5, false),
+            C("SMAT", "Syed Mushtaq Ali Trophy", CompetitionType.Domestic, MatchFormat.T20, 3, false),
+            C("VHT", "Vijay Hazare Trophy", CompetitionType.Domestic, MatchFormat.ListA, 3, false),
+            C("RANJI", "Ranji Trophy", CompetitionType.Domestic, MatchFormat.FirstClass, 3, false),
+            C("T20I", "T20 Internationals", CompetitionType.International, MatchFormat.T20I, 5, false),
+            C("ODI", "One-Day Internationals", CompetitionType.International, MatchFormat.ODI, 5, false),
+            C("TEST", "Test Matches", CompetitionType.International, MatchFormat.Test, 5, false));
+        var demoT20 = C("DT20", "Demo Prospects T20 League (fictional)", CompetitionType.Domestic, MatchFormat.T20, 2, true);
+        var demoOd = C("DODC", "Demo Prospects One-Day Cup (fictional)", CompetitionType.Domestic, MatchFormat.ListA, 2, true);
+        db.Competitions.AddRange(demoT20, demoOd);
 
         var currentYear = Today.Year + (Today.Month >= 6 ? 1 : 0);
-        var historic = Enumerable.Range(currentYear - Math.Clamp(options.HistoricSeasons, 1, 5), Math.Clamp(options.HistoricSeasons, 1, 5)).ToList();
         var seasons = new Dictionary<int, Season>();
-        foreach (var y in historic.Append(currentYear))
+        foreach (var y in Enumerable.Range(2008, currentYear - 2008 + 1))
         {
             var s = new Season
             {
-                Year = y, Name = $"DPL {y}", StartDate = new DateOnly(y, 3, 22), EndDate = new DateOnly(y, 5, 28), IsCurrent = y == currentYear,
-                Status = y == currentYear ? SeasonStatus.Auction : SeasonStatus.Completed,
+                Year = y, Name = $"IPL {y}", StartDate = new DateOnly(y, 3, 22), EndDate = new DateOnly(y, 5, 31), IsCurrent = y == currentYear,
+                Status = y == currentYear ? SeasonStatus.Retention : SeasonStatus.Completed,
             };
             seasons[y] = s;
             db.Seasons.Add(s);
         }
         await db.SaveChangesAsync(ct);
-        foreach (var (y, s) in seasons) AddRules(s, y == currentYear);
+        AddRules(seasons[currentYear], true);
+        AddRules(seasons[currentYear - 1], false);
 
         // ---------------- Franchises ----------------
-        (string Code, string Name, string Short, string City, string Ground, string Owner, string Company, string P, string S)[] fr =
-        [
-            ("MUM", "Mumbai Mariners", "Mariners", "Mumbai", "Marine Park Stadium", "Anaya Kulkarni", "Harbourline Ventures", "#1d4ed8", "#facc15"),
-            ("CHN", "Chennai Cheetahs", "Cheetahs", "Chennai", "Bay Breeze Arena", "Ravi Subramanian", "Coromandel Holdings", "#f59e0b", "#1e3a8a"),
-            ("BLR", "Bengaluru Blazers", "Blazers", "Bengaluru", "Garden City Oval", "Meera Hegde", "Silicon Plateau Group", "#dc2626", "#111827"),
-            ("KOL", "Kolkata Comets", "Comets", "Kolkata", "Hooghly Riverside Ground", "Arindam Bose", "Eastern Lights Pvt Ltd", "#7c3aed", "#fbbf24"),
-            ("DEL", "Delhi Defenders", "Defenders", "Delhi", "Yamuna Capital Stadium", "Kabir Malhotra", "Capital Crest Ltd", "#2563eb", "#ef4444"),
-            ("HYD", "Hyderabad Hawks", "Hawks", "Hyderabad", "Deccan Heights Stadium", "Lakshmi Reddy", "Charminar Capital", "#ea580c", "#0f172a"),
-            ("JAI", "Jaipur Jaguars", "Jaguars", "Jaipur", "Pink City Cricket Ground", "Vikram Rathore", "Aravalli Industries", "#db2777", "#1e40af"),
-            ("PUN", "Punjab Panthers", "Panthers", "Mohali", "Five Rivers Stadium", "Harleen Grewal", "Golden Fields Agro", "#b91c1c", "#d1d5db"),
-            ("LKO", "Lucknow Lancers", "Lancers", "Lucknow", "Nawab Park Stadium", "Siddharth Tripathi", "Awadh Enterprises", "#0891b2", "#f97316"),
-            ("AHM", "Ahmedabad Arrows", "Arrows", "Ahmedabad", "Sabarmati Riverfront Ground", "Nirali Mehta", "Gujarat Kite Holdings", "#0f766e", "#eab308"),
-        ];
-        var franchises = new List<Franchise>();
-        foreach (var f in fr)
+        var franchises = new Dictionary<string, Franchise>();
+        foreach (var t in RealSquads.Teams)
         {
-            var franchise = new Franchise
+            var f = new Franchise
             {
-                Code = f.Code, Name = f.Name, ShortName = f.Short, City = f.City, HomeGround = f.Ground, OwnerName = f.Owner, OwnerCompany = f.Company,
-                OwnerEmail = $"owner.{f.Code.ToLowerInvariant()}@demo.local", PrimaryColor = f.P, SecondaryColor = f.S, FoundedYear = historic.Min() - rng.Int(0, 8),
-                IsDemo = true, CreatedAt = now,
+                Code = t.Code, Name = t.Name, ShortName = t.ShortName, City = t.City, HomeGround = t.Ground, OwnerName = t.Owner, OwnerCompany = t.Owner,
+                PrimaryColor = t.Primary, SecondaryColor = t.Secondary, FoundedYear = t.Founded, IsDemo = false, CreatedAt = now,
             };
-            franchise.Staff.AddRange([
-                new FranchiseStaff { Name = f.Owner, Position = "Owner", Category = StaffCategory.Management },
-                new FranchiseStaff { Name = Names.Indian(rng), Position = "Chief Executive Officer", Category = StaffCategory.Management, SinceYear = historic.Min() },
-                new FranchiseStaff { Name = Names.Indian(rng), Position = "Cricket Director", Category = StaffCategory.Management, SinceYear = historic[^1] },
-                new FranchiseStaff { Name = Names.Overseas(rng, "AUS"), Position = "Head Coach", Category = StaffCategory.Coaching, SinceYear = historic[Math.Max(0, historic.Count - 2)] },
-                new FranchiseStaff { Name = Names.Indian(rng), Position = "Batting Coach", Category = StaffCategory.Coaching, SinceYear = historic[^1] },
-                new FranchiseStaff { Name = Names.Overseas(rng, "RSA"), Position = "Bowling Coach", Category = StaffCategory.Coaching, SinceYear = historic[^1] },
-                new FranchiseStaff { Name = Names.Indian(rng), Position = "Fielding Coach", Category = StaffCategory.Coaching, SinceYear = historic.Min() },
-                new FranchiseStaff { Name = Names.Indian(rng), Position = "Lead Physiotherapist", Category = StaffCategory.Support, SinceYear = historic.Min() },
-                new FranchiseStaff { Name = Names.Indian(rng), Position = "Performance Analyst", Category = StaffCategory.Support, SinceYear = historic[^1] },
-            ]);
-            franchises.Add(franchise);
-            db.Franchises.Add(franchise);
+            f.Staff.Add(new FranchiseStaff { Name = RealSquads.Captains[t.Code], Position = "Captain (IPL 2026)", Category = StaffCategory.Management });
+            franchises[t.Code] = f;
+            db.Franchises.Add(f);
         }
         await db.SaveChangesAsync(ct);
 
-        // ---------------- Players ----------------
-        var profiles = new List<Profile>();
-        var codeNo = 0;
-        Profile NewPlayer(string role, bool overseas, bool keeper, Franchise? franchise, string? countryCode = null)
-        {
-            var cc = overseas ? countryCode ?? rng.Pick(["AUS", "ENG", "RSA", "NZL", "WIN", "AFG", "SRI", "BAN", "IRE", "NED"]) : "IND";
-            var age = rng.Int(19, 37);
-            var dob = new DateOnly(Today.Year - age, rng.Int(1, 12), rng.Int(1, 28));
-            var hand = rng.Chance(0.3) ? BattingHand.LeftHand : BattingHand.RightHand;
-            BowlingType bt;
-            if (role == "bowler" || role == "allrounder")
-                bt = rng.Pick([BowlingType.Fast, BowlingType.Fast, BowlingType.MediumFast, BowlingType.MediumFast, BowlingType.OffSpin, BowlingType.LegSpin, BowlingType.LeftArmOrthodox, BowlingType.LeftArmWristSpin]);
-            else bt = rng.Chance(0.25) ? rng.Pick([BowlingType.OffSpin, BowlingType.Medium]) : BowlingType.None;
-            var spinner = bt is BowlingType.OffSpin or BowlingType.LegSpin or BowlingType.LeftArmOrthodox or BowlingType.LeftArmWristSpin;
-            var name = overseas ? Names.Overseas(rng, cc) : Names.Indian(rng);
-            var talent = Math.Clamp(rng.Normal(0.5, 0.18), 0.05, 0.98);
-            var p = new Player
+        // Season results: only the published finals (champion / runner-up). Other positions are not recorded.
+        foreach (var (year, champion, runnerUp) in RealSquads.Finals)
+            foreach (var (code, f) in franchises)
             {
-                Code = $"P{++codeNo:00000}", FullName = name, DisplayName = name, DateOfBirth = dob, CountryId = countries[cc].Id, IsOverseas = overseas,
-                BattingHand = hand, BowlingType = bt, BowlingStyle = BowlingStyle(bt, rng), PrimaryRoleId = roles[role].Id,
-                IsWicketKeeper = keeper || role == "wk_batter", IsCapped = overseas ? rng.Chance(0.8) : rng.Chance(age > 24 ? 0.4 * talent + 0.15 : 0.05),
-                Status = franchise is null ? PlayerStatus.AvailableForAuction : PlayerStatus.UnderContract, CareerStatus = CareerStatus.Active,
-                CurrentFranchiseId = franchise?.Id, IsDemo = true, DataSource = Source, CreatedAt = now,
-            };
-            if (role == "allrounder") p.SecondaryRoleId = roles[spinner || rng.Chance(0.5) ? "bowler" : "batter"].Id;
-            var profile = new Profile
-            {
-                Player = p, Role = role, Franchise = franchise, CanBowl = bt != BowlingType.None && role != "wk_batter", IsSpinner = spinner,
-                Bat = role switch { "bowler" => talent * 0.35, "allrounder" => talent * 0.8, _ => talent },
-                Bowl = role switch { "bowler" => talent, "allrounder" => talent * 0.85, _ => talent * 0.3 },
-            };
-            profiles.Add(profile);
-            db.Players.Add(p);
-            return profile;
-        }
-
-        foreach (var f in franchises)
-        {
-            string[] plan = ["batter", "batter", "batter", "batter", "batter", "wk_batter", "wk_batter", "allrounder", "allrounder", "allrounder", "allrounder",
-                "allrounder", "bowler", "bowler", "bowler", "bowler", "bowler", "bowler", "bowler", "batter"];
-            var overseasSlots = new HashSet<int>(Enumerable.Range(0, plan.Length).OrderBy(_ => rng.Next()).Take(7));
-            for (var i = 0; i < plan.Length; i++) NewPlayer(plan[i], overseasSlots.Contains(i), false, f);
-        }
-        for (var i = 0; i < 70; i++)
-        {
-            var role = rng.Pick(["batter", "batter", "wk_batter", "allrounder", "allrounder", "bowler", "bowler", "bowler"]);
-            NewPlayer(role, rng.Chance(0.35), false, null);
-        }
-
-        // Prices: a fictional previous auction. Squads stay inside the purse with room left for the coming auction.
-        var purse = 120 * Money.Crore;
-        foreach (var group in profiles.Where(p => p.Franchise is not null).GroupBy(p => p.Franchise!))
-        {
-            foreach (var p in group)
-            {
-                var talent = Math.Max(p.Bat, p.Bowl);
-                var raw = (decimal)Math.Pow(talent, 2.4) * 16 * Money.Crore * (p.Player.IsCapped ? 1 : 0.35m);
-                p.Price = Math.Max(20 * Money.Lakh, Math.Round(raw / (5 * Money.Lakh)) * 5 * Money.Lakh);
-            }
-            var total = group.Sum(p => p.Price);
-            var target = (decimal)rng.Double(88, 104) * Money.Crore;
-            if (total > target)
-                foreach (var p in group) p.Price = Math.Max(20 * Money.Lakh, Math.Round(p.Price * target / total / (5 * Money.Lakh)) * 5 * Money.Lakh);
-        }
-        await db.SaveChangesAsync(ct);
-
-        // ---------------- History: who played where ----------------
-        foreach (var p in profiles)
-        {
-            var age = Today.Year - p.Player.DateOfBirth.Year;
-            var firstPossible = Math.Max(historic.Min(), Today.Year - (age - 19));
-            p.DplDebut = rng.Chance(0.85) ? rng.Int(Math.Min(firstPossible, historic.Max()), historic.Max()) : int.MaxValue;
-            if (p.Franchise is null && rng.Chance(0.4)) p.DplDebut = int.MaxValue;
-            var former = rng.Pick(franchises);
-            var switchYear = rng.Chance(0.25) ? rng.Int(historic.Min(), historic.Max()) : historic.Min();
-            foreach (var y in historic.Where(y => y >= p.DplDebut))
-            {
-                var team = p.Franchise is null ? former : y < switchYear ? former : p.Franchise;
-                p.History[y] = team;
-                db.PlayerTeams.Add(new PlayerTeam
-                {
-                    PlayerId = p.Player.Id, FranchiseId = team.Id, SeasonId = seasons[y].Id,
-                    Acquisition = y == p.DplDebut ? AcquisitionType.Auction : AcquisitionType.Retained, Price = p.Price > 0 ? p.Price : 30 * Money.Lakh,
-                    FromDate = seasons[y].StartDate, ToDate = seasons[y].EndDate,
-                });
-            }
-        }
-
-        // ---------------- Simulated matches ----------------
-        var matches = new List<Match>();
-        var lines = new List<PlayerMatchStatistic>();
-        var tables = new Dictionary<(int Year, Guid Fid), (int P, int W, int L, int NR, int Pts, decimal For, decimal Against)>();
-        foreach (var y in historic)
-        {
-            foreach (var f in franchises) tables[(y, f.Id)] = (0, 0, 0, 0, 0, 0, 0);
-            var fixtures = franchises.SelectMany(a => franchises.Where(b => b != a).Select(b => (Home: a, Away: b))).ToList();
-            var date = seasons[y].StartDate;
-            var i = 0;
-            foreach (var (home, away) in fixtures)
-            {
-                var m = new Match { CompetitionId = dpl.Id, Year = y, Date = date.AddDays(i++ * 60 / fixtures.Count), Venue = home.HomeGround, Team1 = home.Name, Team2 = away.Name, DataSource = Source, IsDemo = true };
-                var homeXI = PickXI(profiles.Where(p => p.History.TryGetValue(y, out var t) && t == home).ToList());
-                var awayXI = PickXI(profiles.Where(p => p.History.TryGetValue(y, out var t) && t == away).ToList());
-                var homeRuns = SimulateTeam(m, homeXI, home.Name, away.Name, true, MatchFormat.T20, lines);
-                var awayRuns = SimulateTeam(m, awayXI, away.Name, home.Name, false, MatchFormat.T20, lines);
-                var homeWon = homeRuns == awayRuns ? rng.Chance(0.5) : homeRuns > awayRuns;
-                m.Result = $"{(homeWon ? home.Name : away.Name)} won ({homeRuns} v {awayRuns})";
-                matches.Add(m);
-                var h = tables[(y, home.Id)];
-                var a = tables[(y, away.Id)];
-                tables[(y, home.Id)] = (h.P + 1, h.W + (homeWon ? 1 : 0), h.L + (homeWon ? 0 : 1), h.NR, h.Pts + (homeWon ? 2 : 0), h.For + homeRuns, h.Against + awayRuns);
-                tables[(y, away.Id)] = (a.P + 1, a.W + (homeWon ? 0 : 1), a.L + (homeWon ? 1 : 0), a.NR, a.Pts + (homeWon ? 0 : 2), a.For + awayRuns, a.Against + homeRuns);
-            }
-            var ranked = franchises.OrderByDescending(f => tables[(y, f.Id)].Pts).ThenByDescending(f => tables[(y, f.Id)].For - tables[(y, f.Id)].Against).ToList();
-            var championIndex = rng.Chance(0.6) ? 0 : 1;
-            for (var pos = 0; pos < ranked.Count; pos++)
-            {
-                var t = tables[(y, ranked[pos].Id)];
+                if (f.FoundedYear > year) continue;
                 db.FranchiseSeasons.Add(new FranchiseSeason
                 {
-                    FranchiseId = ranked[pos].Id, SeasonId = seasons[y].Id, PurseTotal = purse, PurseRemaining = (decimal)rng.Double(0.5, 6) * Money.Crore,
-                    Played = t.P, Won = t.W, Lost = t.L, NoResult = t.NR, Points = t.Pts, NetRunRate = Math.Round((t.For - t.Against) / (t.P * 20m), 3),
-                    FinalPosition = pos + 1 == 1 ? (championIndex == 0 ? 1 : 2) : pos + 1 == 2 ? (championIndex == 0 ? 2 : 1) : pos + 1,
-                    IsChampion = pos == championIndex, IsRunnerUp = pos == 1 - championIndex,
+                    FranchiseId = f.Id, SeasonId = seasons[year].Id, IsChampion = code == champion, IsRunnerUp = code == runnerUp,
+                    FinalPosition = code == champion ? 1 : code == runnerUp ? 2 : null,
                 });
             }
-        }
-        // Domestic, overseas league and international matches (individual player records).
-        string[] domesticTeams = ["Northern Stars XI", "Coastal Kings XI", "Central Rangers XI", "Eastern Tigers XI", "Western Sharks XI", "Southern Suns XI", "Highland Hawks XI", "Desert Foxes XI"];
-        string[] grounds = ["Demo Ground 1", "Demo Ground 2", "Demo Ground 3", "Demo Ground 4", "Demo Ground 5", "Demo Ground 6"];
-        foreach (var p in profiles)
-            foreach (var y in historic)
-            {
-                var age = y - p.Player.DateOfBirth.Year;
-                if (age < 18) continue;
-                if (!p.Player.IsOverseas)
-                {
-                    Individual(p, dt20, y, rng.Int(4, 8), MatchFormat.T20, domesticTeams, grounds, matches, lines);
-                    Individual(p, dod, y, rng.Int(3, 6), MatchFormat.ListA, domesticTeams, grounds, matches, lines);
-                    if (p.Role != "wk_batter" || rng.Chance(0.6)) Individual(p, dfc, y, rng.Int(2, 5), MatchFormat.FirstClass, domesticTeams, grounds, matches, lines);
-                }
-                else Individual(p, otl, y, rng.Int(6, 10), MatchFormat.T20, ["Demo Harbour XI", "Demo Plains XI", "Demo Valley XI", "Demo Lakes XI"], grounds, matches, lines);
-                if (p.Player.IsCapped && age >= 21 && rng.Chance(0.75))
-                {
-                    var opponents = new[] { "India", "Australia", "England", "South Africa", "New Zealand", "West Indies", "Sri Lanka", "Afghanistan" }
-                        .Where(o => o != CountryName(p)).ToArray();
-                    Individual(p, t20i, y, rng.Int(2, 7), MatchFormat.T20I, opponents, grounds, matches, lines);
-                    if (p.Role != "bowler" || rng.Chance(0.7)) Individual(p, odi, y, rng.Int(1, 5), MatchFormat.ODI, opponents, grounds, matches, lines);
-                    if (Math.Max(p.Bat, p.Bowl) > 0.55 && rng.Chance(0.5)) Individual(p, test, y, rng.Int(1, 4), MatchFormat.Test, opponents, grounds, matches, lines);
-                }
-            }
 
+        // ---------------- Real players (IPL 2026 squads) ----------------
+        var squadSeason = seasons[currentYear - 1];
+        var current = seasons[currentYear];
+        var codeNo = 0;
+        var realPlayers = new List<(Player Player, Franchise Franchise, decimal? Price, bool Signed)>();
+        foreach (var line in RealSquads.Players.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            var c = line.Split('|');
+            var (team, name, role, country, capped, hand, style) = (c[0], c[1], c[2], c[3], c[4] == "1", c[5], c[6]);
+            var roleCode = role switch { "bat" => "batter", "wk" => "wk_batter", "ar" => "allrounder", _ => "bowler" };
+            var player = new Player
+            {
+                Code = $"P{++codeNo:00000}", FullName = name, DisplayName = name, DateOfBirth = null, CountryId = countries[country].Id,
+                IsOverseas = country != "IND", IsCapped = capped, IsWicketKeeper = role == "wk",
+                BattingHand = hand switch { "R" => BattingHand.RightHand, "L" => BattingHand.LeftHand, _ => BattingHand.Unknown },
+                BowlingStyle = style == "?" ? "" : style, BowlingType = ParseBowlingType(style, roleCode),
+                PrimaryRoleId = roles[roleCode].Id, Status = PlayerStatus.UnderContract, CareerStatus = CareerStatus.Active,
+                CurrentFranchiseId = franchises[team].Id, IsDemo = false, DataSource = RealSquads.Source, CreatedAt = now,
+            };
+            db.Players.Add(player);
+            realPlayers.Add((player, franchises[team], RealSquads.KnownPrices.TryGetValue(name, out var price) ? price : null, RealSquads.SignedAtAuction.Contains(name)));
+        }
+
+        // ---------------- Fictional demo prospects (auction pool and scouting practice) ----------------
+        var prospects = new List<Profile>();
+        for (var i = 0; i < 48; i++)
+        {
+            var role = rng.Pick(["batter", "batter", "wk_batter", "allrounder", "allrounder", "bowler", "bowler", "bowler"]);
+            var overseas = rng.Chance(0.25);
+            var cc = overseas ? rng.Pick(["AUS", "ENG", "RSA", "NZL", "WIN", "AFG", "SRI"]) : "IND";
+            var age = rng.Int(18, 27);
+            BowlingType bt = role is "bowler" or "allrounder"
+                ? rng.Pick([BowlingType.Fast, BowlingType.MediumFast, BowlingType.OffSpin, BowlingType.LegSpin, BowlingType.LeftArmOrthodox])
+                : BowlingType.None;
+            var name = $"{(overseas ? Names.Overseas(rng, cc) : Names.Indian(rng))} (Demo)";
+            var talent = Math.Clamp(rng.Normal(0.5, 0.18), 0.05, 0.95);
+            var p = new Player
+            {
+                Code = $"D{i + 1:0000}", FullName = name, DisplayName = name, DateOfBirth = new DateOnly(Today.Year - age, rng.Int(1, 12), rng.Int(1, 28)),
+                CountryId = countries[cc].Id, IsOverseas = overseas, BattingHand = rng.Chance(0.3) ? BattingHand.LeftHand : BattingHand.RightHand,
+                BowlingType = bt, BowlingStyle = BowlingStyle(bt, rng), PrimaryRoleId = roles[role].Id, IsWicketKeeper = role == "wk_batter",
+                IsCapped = false, Status = PlayerStatus.AvailableForAuction, CareerStatus = CareerStatus.Active, IsDemo = true, DataSource = Source, CreatedAt = now,
+            };
+            db.Players.Add(p);
+            prospects.Add(new Profile
+            {
+                Player = p, Role = role, CanBowl = bt != BowlingType.None, IsSpinner = bt is BowlingType.OffSpin or BowlingType.LegSpin or BowlingType.LeftArmOrthodox,
+                Bat = role switch { "bowler" => talent * 0.35, "allrounder" => talent * 0.8, _ => talent },
+                Bowl = role switch { "bowler" => talent, "allrounder" => talent * 0.85, _ => talent * 0.3 },
+            });
+        }
         await db.SaveChangesAsync(ct);
+
+        // Synthetic statistics for the fictional prospects only (never for real players).
+        var matches = new List<Match>();
+        var lines = new List<PlayerMatchStatistic>();
+        string[] teams = ["Demo Northern XI", "Demo Coastal XI", "Demo Central XI", "Demo Eastern XI", "Demo Western XI", "Demo Southern XI"];
+        string[] grounds = ["Demo Ground 1", "Demo Ground 2", "Demo Ground 3", "Demo Ground 4"];
+        foreach (var p in prospects)
+            foreach (var y in Enumerable.Range(currentYear - 3, 3))
+            {
+                Individual(p, demoT20, y, rng.Int(5, 9), MatchFormat.T20, teams, grounds, matches, lines);
+                Individual(p, demoOd, y, rng.Int(3, 6), MatchFormat.ListA, teams, grounds, matches, lines);
+            }
         await BulkInsertAsync(matches, "Matches", ct);
         await BulkInsertAsync(lines, "PlayerMatchStatistics", ct);
-
-        // Season and career totals computed from the match rows.
         var compByMatch = matches.ToDictionary(m => m.Id, m => (m.CompetitionId, m.Year));
         var seasonRows = new List<PlayerSeasonStatistic>();
         foreach (var g in lines.GroupBy(l => (l.PlayerId, compByMatch[l.MatchId].CompetitionId, compByMatch[l.MatchId].Year)))
         {
-            var row = new PlayerSeasonStatistic { PlayerId = g.Key.PlayerId, CompetitionId = g.Key.CompetitionId, Year = g.Key.Year, DataSource = Source, LastUpdatedAt = now };
+            var row = new PlayerSeasonStatistic { PlayerId = g.Key.PlayerId, CompetitionId = g.Key.CompetitionId, Year = g.Key.Year, DataSource = Source, LastUpdatedAt = now, TeamName = g.First().Team };
             StatisticsService.Aggregate(row, g.ToList());
-            row.TeamName = g.First().Team;
             seasonRows.Add(row);
         }
         db.PlayerSeasonStatistics.AddRange(seasonRows);
@@ -308,54 +206,29 @@ public class DemoSeeder(AppDbContext db, IPasswordHasher<User> hasher, DemoSeedO
             StatisticsService.Sum(career, g.ToList());
             db.PlayerCareerStatistics.Add(career);
         }
-        await db.SaveChangesAsync(ct);
 
-        // ---------------- Current season: squads, contracts, purses, finance ----------------
-        var current = seasons[currentYear];
-        foreach (var f in franchises)
+        // ---------------- Current season: squads carried forward from 2026, purses ----------------
+        var purse = 120 * Money.Crore;
+        foreach (var f in franchises.Values)
         {
-            var squad = profiles.Where(p => p.Franchise == f).ToList();
-            var spent = squad.Sum(p => p.Price);
-            db.FranchiseSeasons.Add(new FranchiseSeason { FranchiseId = f.Id, SeasonId = current.Id, PurseTotal = purse, PurseRemaining = purse - spent, OperatingBudget = 45 * Money.Crore });
+            var squad = realPlayers.Where(r => r.Franchise == f).ToList();
+            db.FranchiseSeasons.Add(new FranchiseSeason { FranchiseId = f.Id, SeasonId = current.Id, PurseTotal = purse, PurseRemaining = purse });
             db.FinanceTransactions.Add(new FinanceTransaction
             {
                 FranchiseId = f.Id, SeasonId = current.Id, Category = FinanceCategory.AuctionPurse, Direction = FinanceDirection.Credit, Amount = purse,
-                PurseBalanceAfter = purse, Description = $"{current.Name} auction purse allocation", IdempotencyKey = $"purse-alloc:{f.Id}:{current.Id}", CreatedAt = now.AddDays(-60),
+                PurseBalanceAfter = purse, Description = $"{current.Name} auction purse allocation (rule value; set the official figure in Settings)",
+                IdempotencyKey = $"purse-alloc:{f.Id}:{current.Id}", CreatedAt = now,
             });
-            var balance = purse;
-            var k = 0;
-            foreach (var p in squad.OrderByDescending(p => p.Price))
+            foreach (var r in squad)
             {
-                balance -= p.Price;
-                db.FinanceTransactions.Add(new FinanceTransaction
-                {
-                    FranchiseId = f.Id, SeasonId = current.Id, Category = FinanceCategory.AuctionPurse, Direction = FinanceDirection.Debit, Amount = p.Price,
-                    PurseBalanceAfter = balance, Description = $"Squad carried forward: {p.Player.FullName}", ReferenceType = "Player", ReferenceId = p.Player.Id.ToString(),
-                    IdempotencyKey = $"carry:{current.Id}:{p.Player.Id}", CreatedAt = now.AddDays(-59).AddMinutes(k++),
-                });
+                var acquisition = r.Signed ? AcquisitionType.Auction : AcquisitionType.Initial;
+                db.PlayerTeams.Add(new PlayerTeam { PlayerId = r.Player.Id, FranchiseId = f.Id, SeasonId = squadSeason.Id, Acquisition = acquisition, Price = r.Price, FromDate = squadSeason.StartDate });
                 db.FranchiseSquads.Add(new FranchiseSquad
                 {
-                    FranchiseId = f.Id, SeasonId = current.Id, PlayerId = p.Player.Id, Acquisition = p.History.ContainsKey(historic.Max()) ? AcquisitionType.Retained : AcquisitionType.Auction,
-                    Price = p.Price, Status = SquadMemberStatus.Active, JoinedAt = now.AddDays(-59),
+                    FranchiseId = f.Id, SeasonId = current.Id, PlayerId = r.Player.Id, Acquisition = acquisition, Price = r.Price ?? 0,
+                    Status = SquadMemberStatus.Active, JoinedAt = now,
                 });
-                var contract = new PlayerContract
-                {
-                    PlayerId = p.Player.Id, FranchiseId = f.Id, StartSeasonId = current.Id, EndSeasonId = current.Id, StartDate = current.StartDate.AddDays(-30),
-                    EndDate = current.EndDate, AnnualSalary = p.Price, Acquisition = AcquisitionType.Auction, Status = ContractStatus.Active, CreatedAt = now.AddDays(-59),
-                };
-                for (var n = 0; n < 3; n++)
-                    contract.Payments.Add(new ContractPayment { DueDate = contract.StartDate.AddDays(n * 30), Amount = Math.Round(p.Price / 3, 2), Status = PaymentStatus.Scheduled });
-                contract.Payments[2].Amount = p.Price - contract.Payments[0].Amount * 2;
-                db.PlayerContracts.Add(contract);
-                db.PlayerTeams.Add(new PlayerTeam { PlayerId = p.Player.Id, FranchiseId = f.Id, SeasonId = current.Id, Acquisition = AcquisitionType.Retained, Price = p.Price, FromDate = current.StartDate });
             }
-        }
-        // A few availability issues (public notes only — no medical detail).
-        foreach (var p in profiles.Where(p => p.Franchise is not null).OrderBy(_ => rng.Next()).Take(9))
-        {
-            var status = rng.Pick([AvailabilityStatus.Injured, AvailabilityStatus.Doubtful, AvailabilityStatus.NationalDuty]);
-            db.PlayerAvailability.Add(new PlayerAvailability { PlayerId = p.Player.Id, Status = status, PublicNote = status == AvailabilityStatus.NationalDuty ? "On national duty" : "Under assessment", ExpectedReturn = Today.AddDays(rng.Int(10, 60)), UpdatedAt = now });
-            if (status == AvailabilityStatus.Injured) p.Player.Status = PlayerStatus.Injured;
         }
         await db.SaveChangesAsync(ct);
 
@@ -363,138 +236,99 @@ public class DemoSeeder(AppDbContext db, IPasswordHasher<User> hasher, DemoSeedO
         var roleIds = await db.Roles.ToDictionaryAsync(r => r.Code, r => r.Id, ct);
         User NewUser(string email, string name, string? role, Guid? franchiseId, string? title = null)
         {
-            var u = new User
-            {
-                Email = email, NormalizedEmail = email.ToUpperInvariant(), FullName = name, IsActive = true, IsActivated = true, DefaultFranchiseId = franchiseId, CreatedAt = now,
-            };
+            var u = new User { Email = email, NormalizedEmail = email.ToUpperInvariant(), FullName = name, IsActive = true, IsActivated = true, DefaultFranchiseId = franchiseId, CreatedAt = now };
             u.PasswordHash = hasher.HashPassword(u, options.Password);
             db.Users.Add(u);
             if (role is not null) db.UserRoles.Add(new UserRole { UserId = u.Id, RoleId = roleIds[role], FranchiseId = franchiseId, AssignedAt = now });
             if (franchiseId is { } fid) db.FranchiseMembers.Add(new FranchiseMember { FranchiseId = fid, UserId = u.Id, JobTitle = title ?? "", JoinedAt = now });
             return u;
         }
-        NewUser("admin@demo.local", "Platform Administrator", RoleCatalog.SuperAdmin, null);
-        var league = NewUser("league@demo.local", "League Operations", RoleCatalog.LeagueAdmin, null);
-        var mum = franchises[0];
-        var chn = franchises[1];
+        static string Slug(string roleCode) => roleCode.Replace("franchise_", "").Replace("_", ".");
+        NewUser("admin@demo.local", "Platform Administrator (demo)", RoleCatalog.SuperAdmin, null);
+        var league = NewUser("league@demo.local", "League Operations (demo)", RoleCatalog.LeagueAdmin, null);
+        var mi = franchises["MI"];
+        var csk = franchises["CSK"];
         var users = new Dictionary<string, User>();
         foreach (var (code, name, _, _, _) in RoleCatalog.All.Where(r => r.Scope == RoleScope.Franchise))
-        {
-            var u = NewUser($"{code.Replace("franchise_", "").Replace("_", ".")}.mum@demo.local", $"{Names.Indian(rng)}", code, mum.Id, name);
-            users[code] = u;
-        }
-        var scout2 = NewUser("scout2.mum@demo.local", Names.Indian(rng), RoleCatalog.Scout, mum.Id, "Scout");
+            users[code] = NewUser($"{Slug(code)}.mi@demo.local", $"Demo {name} (MI)", code, mi.Id, name);
+        var scout2 = NewUser("scout2.mi@demo.local", "Demo Scout 2 (MI)", RoleCatalog.Scout, mi.Id, "Scout");
         foreach (var code in new[] { RoleCatalog.Owner, RoleCatalog.Ceo, RoleCatalog.CricketDirector, RoleCatalog.AuctionManager, RoleCatalog.Operations })
-            NewUser($"{code.Replace("franchise_", "").Replace("_", ".")}.chn@demo.local", Names.Indian(rng), code, chn.Id, RoleCatalog.All.First(r => r.Code == code).Name);
-        foreach (var f in franchises.Skip(2))
+            NewUser($"{Slug(code)}.csk@demo.local", $"Demo {RoleCatalog.All.First(r => r.Code == code).Name} (CSK)", code, csk.Id, RoleCatalog.All.First(r => r.Code == code).Name);
+        foreach (var f in franchises.Values.Where(f => f.Code is not ("MI" or "CSK")))
         {
-            NewUser($"owner.{f.Code.ToLowerInvariant()}@demo.local", f.OwnerName, RoleCatalog.Owner, f.Id, "Owner");
-            NewUser($"auction.{f.Code.ToLowerInvariant()}@demo.local", Names.Indian(rng), RoleCatalog.AuctionManager, f.Id, "Auction Manager");
+            NewUser($"owner.{f.Code.ToLowerInvariant()}@demo.local", $"Demo Owner ({f.Code})", RoleCatalog.Owner, f.Id, "Owner");
+            NewUser($"auction.{f.Code.ToLowerInvariant()}@demo.local", $"Demo Auction Manager ({f.Code})", RoleCatalog.AuctionManager, f.Id, "Auction Manager");
         }
         await db.SaveChangesAsync(ct);
 
-        // ---------------- Auction pool ----------------
+        // ---------------- Practice auction with the fictional prospects ----------------
         var auction = new AuctionEvent
         {
-            SeasonId = current.Id, Name = $"DPL {currentYear} Player Auction", IsMegaAuction = false, ScheduledAt = now.Date.AddDays(14).AddHours(9),
+            SeasonId = current.Id, Name = $"{current.Name} practice auction (demo prospects)", IsMegaAuction = false, ScheduledAt = now.Date.AddDays(14).AddHours(9),
             Status = AuctionStatus.Ready, BidTimerSeconds = 30, AllowReopenUnsold = true, CreatedAt = now, CreatedBy = league.Id,
         };
         db.AuctionEvents.Add(auction);
         var lot = 0;
         var setNo = 0;
-        foreach (var g in profiles.Where(p => p.Franchise is null).GroupBy(p => (p.Player.IsCapped, p.Role)).OrderByDescending(g => g.Key.IsCapped))
+        foreach (var g in prospects.GroupBy(p => p.Role))
         {
             setNo++;
             foreach (var p in g.OrderByDescending(p => Math.Max(p.Bat, p.Bowl)))
             {
                 var t = Math.Max(p.Bat, p.Bowl);
-                var basePrice = !p.Player.IsCapped ? 20 * Money.Lakh : t > 0.7 ? 2 * Money.Crore : t > 0.55 ? Money.Crore : t > 0.4 ? 50 * Money.Lakh : 30 * Money.Lakh;
                 db.AuctionPlayers.Add(new AuctionPlayer
                 {
-                    AuctionEventId = auction.Id, PlayerId = p.Player.Id, SetName = $"{(g.Key.IsCapped ? "Capped" : "Uncapped")} {RoleName(g.Key.Role)}s", SetNumber = setNo,
-                    LotNumber = ++lot, BasePrice = basePrice, Status = AuctionLotStatus.Pending,
+                    AuctionEventId = auction.Id, PlayerId = p.Player.Id, SetName = $"Demo {RoleName(g.Key)}s", SetNumber = setNo, LotNumber = ++lot,
+                    BasePrice = t > 0.65 ? 75 * Money.Lakh : t > 0.45 ? 40 * Money.Lakh : 30 * Money.Lakh, Status = AuctionLotStatus.Pending,
                 });
             }
         }
 
-        // ---------------- Sample workflow data ----------------
-        var mumSquad = profiles.Where(p => p.Franchise == mum).ToList();
-        var chnSquad = profiles.Where(p => p.Franchise == chn).ToList();
-        var offered = mumSquad.Where(p => p.Role == "bowler" && !p.Player.IsOverseas).OrderBy(p => p.Price).First();
-        var requested = chnSquad.Where(p => p.Role == "batter" && !p.Player.IsOverseas).OrderBy(p => p.Price).First();
-        var trade = new TradeOffer
-        {
-            Reference = $"TR-{currentYear}-0001", SeasonId = current.Id, InitiatorFranchiseId = mum.Id, CounterpartyFranchiseId = chn.Id,
-            Status = TradeStatus.PendingResponse, CashConsideration = 50 * Money.Lakh, CashPayerFranchiseId = mum.Id, AwaitingFranchiseId = chn.Id,
-            SubmittedAt = now.AddDays(-1), ExpiresAt = now.AddDays(6), Conditions = "Subject to medical clearance of both players.", CreatedAt = now.AddDays(-2),
-            CreatedBy = users[RoleCatalog.CricketDirector].Id,
-        };
-        trade.Players.Add(new TradeOfferPlayer { PlayerId = offered.Player.Id, FromFranchiseId = mum.Id, ToFranchiseId = chn.Id, ContractSalary = offered.Price });
-        trade.Players.Add(new TradeOfferPlayer { PlayerId = requested.Player.Id, FromFranchiseId = chn.Id, ToFranchiseId = mum.Id, ContractSalary = requested.Price });
-        trade.Negotiations.Add(new TradeNegotiation { RevisionNo = 1, Action = NegotiationAction.Created, ByFranchiseId = mum.Id, ByUserId = users[RoleCatalog.CricketDirector].Id, ByUserName = users[RoleCatalog.CricketDirector].FullName, At = now.AddDays(-2) });
-        trade.Negotiations.Add(new TradeNegotiation { RevisionNo = 1, Action = NegotiationAction.Submitted, ByFranchiseId = mum.Id, ByUserId = users[RoleCatalog.CricketDirector].Id, ByUserName = users[RoleCatalog.CricketDirector].FullName, Message = "We think this balances both squads. Open to discussion.", At = now.AddDays(-1) });
-        trade.Negotiations.Add(new TradeNegotiation { RevisionNo = 1, Action = NegotiationAction.Note, ByFranchiseId = mum.Id, ByUserId = users[RoleCatalog.Ceo].Id, ByUserName = users[RoleCatalog.Ceo].FullName, Message = "Internal: we can go up to ₹1 Cr consideration if needed.", IsInternal = true, At = now.AddDays(-1) });
-        db.TradeOffers.Add(trade);
-
-        var emerging = profiles.Where(p => p.Franchise is null && Today.Year - p.Player.DateOfBirth.Year <= 23).OrderByDescending(p => Math.Max(p.Bat, p.Bowl)).Take(3).ToList();
+        // ---------------- Scouting practice (fictional prospects only) ----------------
         var scout = users[RoleCatalog.Scout];
-        if (emerging.Count > 0)
+        var emerging = prospects.OrderByDescending(p => Math.Max(p.Bat, p.Bowl)).Take(3).ToList();
+        var assignment = new ScoutingAssignment
         {
-            var assignment = new ScoutingAssignment
+            FranchiseId = mi.Id, PlayerId = emerging[0].Player.Id, Title = $"Watch {emerging[0].Player.FullName}", AssignedToUserId = scout.Id,
+            Description = "Practice assignment on a fictional demo prospect.", DueDate = Today.AddDays(10), Status = AssignmentStatus.InProgress,
+            CreatedAt = now.AddDays(-5), CreatedBy = users[RoleCatalog.ScoutingManager].Id,
+        };
+        db.ScoutingAssignments.Add(assignment);
+        for (var i = 0; i < emerging.Count; i++)
+            db.PlayerScoutingReports.Add(new PlayerScoutingReport
             {
-                FranchiseId = mum.Id, PlayerId = emerging[0].Player.Id, Title = $"Watch {emerging[0].Player.FullName} in domestic T20", AssignedToUserId = scout.Id,
-                Description = "Assess temperament under pressure and death-overs skills.", DueDate = Today.AddDays(10), Status = AssignmentStatus.InProgress,
-                CreatedAt = now.AddDays(-5), CreatedBy = users[RoleCatalog.ScoutingManager].Id,
-            };
-            db.ScoutingAssignments.Add(assignment);
-            var i = 0;
-            foreach (var e in emerging)
-            {
-                db.PlayerScoutingReports.Add(new PlayerScoutingReport
-                {
-                    FranchiseId = mum.Id, PlayerId = e.Player.Id, ScoutUserId = i == 2 ? scout2.Id : scout.Id, AssignmentId = i == 0 ? assignment.Id : null,
-                    MatchObserved = $"Demo Domestic T20 Trophy vs {rng.Pick(domesticTeams)}", ObservedOn = Today.AddDays(-rng.Int(3, 40)),
-                    Strengths = "Clean striking through the line; calm between overs.", Weaknesses = "Short ball outside off stump; fitness in the field.",
-                    Observations = "Synthetic demo report.", TechniqueRating = rng.Int(6, 9), TemperamentRating = rng.Int(5, 9), FitnessRating = rng.Int(5, 8),
-                    PotentialRating = rng.Int(7, 10), OverallRating = rng.Int(6, 9), Recommendation = i == 0 ? ScoutingRecommendation.Sign : ScoutingRecommendation.StrongMonitor,
-                    Status = i == 1 ? ReportStatus.Reviewed : ReportStatus.Submitted, ReviewedBy = i == 1 ? users[RoleCatalog.ScoutingManager].Id : null,
-                    ReviewedAt = i == 1 ? now.AddDays(-1) : null, ReviewComment = i == 1 ? "Agree — add to the auction shortlist." : null, CreatedAt = now.AddDays(-rng.Int(1, 20)),
-                });
-                i++;
-            }
-        }
-        var injured = mumSquad.First(p => p.Role == "bowler" && p != offered);
-        db.PlayerMedicalRecords.Add(new PlayerMedicalRecord
-        {
-            PlayerId = injured.Player.Id, FranchiseId = mum.Id, Condition = "Side strain (demo)", BodyPart = "Left side", Severity = InjurySeverity.Moderate,
-            Assessment = "Synthetic demo record: grade 1 strain, graduated return to bowling.", InjuryDate = Today.AddDays(-12), ExpectedReturn = Today.AddDays(18),
-            RecoveryProgress = 45, CreatedAt = now.AddDays(-12), CreatedBy = users[RoleCatalog.Medical].Id,
-        });
-        var existingAvail = await db.PlayerAvailability.FirstOrDefaultAsync(a => a.PlayerId == injured.Player.Id, ct);
-        if (existingAvail is null)
-            db.PlayerAvailability.Add(new PlayerAvailability { PlayerId = injured.Player.Id, Status = AvailabilityStatus.Injured, PublicNote = "Expected back before the season", ExpectedReturn = Today.AddDays(18), UpdatedAt = now });
-        injured.Player.Status = PlayerStatus.Injured;
+                FranchiseId = mi.Id, PlayerId = emerging[i].Player.Id, ScoutUserId = i == 2 ? scout2.Id : scout.Id, AssignmentId = i == 0 ? assignment.Id : null,
+                MatchObserved = "Demo Prospects T20 League (fictional)", ObservedOn = Today.AddDays(-rng.Int(3, 40)),
+                Strengths = "Practice report on a fictional player.", Weaknesses = "Practice report on a fictional player.", Observations = "Demo data.",
+                TechniqueRating = rng.Int(6, 9), TemperamentRating = rng.Int(5, 9), FitnessRating = rng.Int(5, 8), PotentialRating = rng.Int(7, 10), OverallRating = rng.Int(6, 9),
+                Recommendation = i == 0 ? ScoutingRecommendation.Sign : ScoutingRecommendation.StrongMonitor, Status = i == 1 ? ReportStatus.Reviewed : ReportStatus.Submitted,
+                ReviewedBy = i == 1 ? users[RoleCatalog.ScoutingManager].Id : null, ReviewedAt = i == 1 ? now.AddDays(-1) : null,
+                ReviewComment = i == 1 ? "Practice review." : null, CreatedAt = now.AddDays(-rng.Int(1, 20)),
+            });
 
-        var internalThread = new MessageThread { Subject = "Auction shortlist", Type = ThreadType.Internal, FranchiseId = mum.Id, LastMessageAt = now.AddHours(-3), CreatedAt = now.AddDays(-1) };
-        internalThread.Messages.Add(new Message { SenderUserId = users[RoleCatalog.CricketDirector].Id, SenderName = users[RoleCatalog.CricketDirector].FullName, SenderFranchiseId = mum.Id, Body = "Let's finalise the top 10 auction targets by Friday.", SentAt = now.AddHours(-5) });
-        internalThread.Messages.Add(new Message { SenderUserId = users[RoleCatalog.AuctionManager].Id, SenderName = users[RoleCatalog.AuctionManager].FullName, SenderFranchiseId = mum.Id, Body = "Draft list is in the Valuation screen. We need a back-up keeper.", SentAt = now.AddHours(-3) });
-        db.MessageThreads.Add(internalThread);
-        var external = new MessageThread { Subject = $"Trade {trade.Reference}", Type = ThreadType.Trade, FranchiseId = mum.Id, CounterpartyFranchiseId = chn.Id, TradeOfferId = trade.Id, LastMessageAt = now.AddHours(-20), CreatedAt = now.AddDays(-1) };
-        external.Messages.Add(new Message { SenderUserId = users[RoleCatalog.CricketDirector].Id, SenderName = users[RoleCatalog.CricketDirector].FullName, SenderFranchiseId = mum.Id, Body = "Happy to talk through the offer whenever suits.", SentAt = now.AddHours(-20) });
-        db.MessageThreads.Add(external);
-
-        db.BudgetAllocations.AddRange(
-            new BudgetAllocation { FranchiseId = mum.Id, SeasonId = current.Id, Category = FinanceCategory.OtherExpense, Label = "Travel & accommodation", Amount = 6 * Money.Crore, UpdatedAt = now },
-            new BudgetAllocation { FranchiseId = mum.Id, SeasonId = current.Id, Category = FinanceCategory.OtherExpense, Label = "Training camps", Amount = 2 * Money.Crore, UpdatedAt = now },
-            new BudgetAllocation { FranchiseId = mum.Id, SeasonId = current.Id, Category = FinanceCategory.PlayerCompensation, Label = "Player salaries", Amount = mumSquad.Sum(p => p.Price), UpdatedAt = now });
-        db.FinanceTransactions.Add(new FinanceTransaction
-        {
-            FranchiseId = mum.Id, SeasonId = current.Id, Category = FinanceCategory.OtherExpense, Direction = FinanceDirection.Debit, Amount = 85 * Money.Lakh,
-            Description = "Pre-season training camp (demo)", ReferenceType = "Manual", IdempotencyKey = "demo:camp", CreatedAt = now.AddDays(-20), CreatedBy = users[RoleCatalog.FinanceManager].Id,
-        });
-        db.AuditLogs.Add(new AuditLog { At = now, Action = "system.demo_seeded", EntityType = "System", Details = "{\"note\":\"Fictional demo league created\"}" });
+        var thread = new MessageThread { Subject = "Welcome to the demo", Type = ThreadType.Internal, FranchiseId = mi.Id, LastMessageAt = now, CreatedAt = now };
+        thread.Messages.Add(new Message { SenderUserId = users[RoleCatalog.CricketDirector].Id, SenderName = users[RoleCatalog.CricketDirector].FullName, SenderFranchiseId = mi.Id,
+            Body = "Squads are the published IPL 2026 lists. Prices, dates of birth and statistics are not loaded yet: import them from a licensed provider.", SentAt = now });
+        db.MessageThreads.Add(thread);
+        db.AuditLogs.Add(new AuditLog { At = now, Action = "system.reference_data_seeded", EntityType = "System", Details = "{\"note\":\"Real franchises and IPL 2026 squads; fictional demo prospects\"}" });
         await db.SaveChangesAsync(ct);
-        log.LogInformation("Demo league ready: {Players} players, {Matches} matches, {Lines} performance rows.", profiles.Count, matches.Count, lines.Count);
+        log.LogInformation("League ready: {Real} real players, {Prospects} demo prospects.", realPlayers.Count, prospects.Count);
+    }
+
+    /// <summary>Bowling type from the published style text ("?" = bowls but style not recorded).</summary>
+    private static BowlingType ParseBowlingType(string style, string roleCode)
+    {
+        var s = style.ToLowerInvariant();
+        if (s == "?") return BowlingType.Unknown;
+        if (s.Length == 0) return roleCode is "bowler" or "allrounder" ? BowlingType.Unknown : BowlingType.None;
+        if (s.Contains("wrist")) return BowlingType.LeftArmWristSpin;
+        if (s.Contains("orthodox")) return BowlingType.LeftArmOrthodox;
+        if (s.Contains("leg-break")) return BowlingType.LegSpin;
+        if (s.Contains("off-break")) return BowlingType.OffSpin;
+        if (s.Contains("fast-medium") || s.Contains("medium-fast")) return BowlingType.MediumFast;
+        if (s.Contains("fast")) return BowlingType.Fast;
+        if (s.Contains("medium")) return BowlingType.Medium;
+        return BowlingType.Unknown;
     }
 
     // ------------------------------------------------------------------ rules

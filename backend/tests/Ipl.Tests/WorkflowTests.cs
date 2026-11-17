@@ -11,13 +11,13 @@ public class AuthAndSecurityTests(ApiFactory api)
     [Fact]
     public async Task Login_returns_token_and_profile_and_wrong_password_is_rejected()
     {
-        var c = await api.LoginAsync("owner.mum@demo.local");
+        var c = await api.LoginAsync("owner.mi@demo.local");
         var me = await c.OkAsync(c.GetAsync("auth/me"));
-        Assert.Equal("owner.mum@demo.local", me.GetProperty("email").GetString());
+        Assert.Equal("owner.mi@demo.local", me.GetProperty("email").GetString());
         Assert.Contains(me.GetProperty("permissions").EnumerateArray(), p => p.GetString() == Perm.TradesApprove);
 
         var anon = new ApiClient(api.CreateClient());
-        var bad = await anon.PostAsync("auth/login", new { email = "owner.mum@demo.local", password = "wrong-Password1" });
+        var bad = await anon.PostAsync("auth/login", new { email = "owner.mi@demo.local", password = "wrong-Password1" });
         Assert.Equal(HttpStatusCode.Unauthorized, bad.Status);
         Assert.Equal("Incorrect e-mail or password.", bad.Error.GetProperty("message").GetString());
     }
@@ -26,8 +26,8 @@ public class AuthAndSecurityTests(ApiFactory api)
     public async Task Account_locks_after_repeated_failures()
     {
         var anon = new ApiClient(api.CreateClient());
-        for (var i = 0; i < 5; i++) await anon.PostAsync("auth/login", new { email = "assistant.coach.mum@demo.local", password = "Wrong-password-1" });
-        var locked = await anon.PostAsync("auth/login", new { email = "assistant.coach.mum@demo.local", password = ApiFactory.Password });
+        for (var i = 0; i < 5; i++) await anon.PostAsync("auth/login", new { email = "assistant.coach.mi@demo.local", password = "Wrong-password-1" });
+        var locked = await anon.PostAsync("auth/login", new { email = "assistant.coach.mi@demo.local", password = ApiFactory.Password });
         Assert.Equal(HttpStatusCode.Unauthorized, locked.Status);
         Assert.Contains("Too many failed attempts", locked.Raw);
     }
@@ -35,7 +35,7 @@ public class AuthAndSecurityTests(ApiFactory api)
     [Fact]
     public async Task Refresh_rotates_and_reusing_an_old_token_ends_every_session()
     {
-        var c = await api.LoginAsync("analyst.mum@demo.local");
+        var c = await api.LoginAsync("analyst.mi@demo.local");
         var first = c.RefreshCookie!;
         var r1 = await c.SendAsync(HttpMethod.Post, "auth/refresh", new { }, first);
         Assert.Equal(HttpStatusCode.OK, r1.Status);
@@ -58,10 +58,10 @@ public class AuthAndSecurityTests(ApiFactory api)
     [Fact]
     public async Task Permissions_and_tenant_isolation_are_enforced_on_the_server()
     {
-        var owner = await api.LoginAsync("owner.mum@demo.local");
-        var medical = await api.LoginAsync("medical.staff.mum@demo.local");
-        var chn = await api.LoginAsync("owner.chn@demo.local");
-        var scout = await api.LoginAsync("scout.mum@demo.local");
+        var owner = await api.LoginAsync("owner.mi@demo.local");
+        var medical = await api.LoginAsync("medical.staff.mi@demo.local");
+        var chn = await api.LoginAsync("owner.csk@demo.local");
+        var scout = await api.LoginAsync("scout.mi@demo.local");
 
         Assert.Equal(HttpStatusCode.Forbidden, (await owner.GetAsync("medical/records")).Status);            // medical details: medical staff only
         Assert.Equal(HttpStatusCode.OK, (await medical.GetAsync("medical/records")).Status);
@@ -85,7 +85,7 @@ public class AuthAndSecurityTests(ApiFactory api)
     [Fact]
     public async Task Franchise_managers_cannot_grant_permissions_they_do_not_hold()
     {
-        var owner = await api.LoginAsync("owner.mum@demo.local");
+        var owner = await api.LoginAsync("owner.mi@demo.local");
         var me = await owner.OkAsync(owner.GetAsync("auth/me"));
         var fid = me.GetProperty("activeFranchiseId").GetString();
         var medicalRole = await owner.PostAsync("users/invite", new { email = $"doc{Guid.NewGuid():N}@demo.local", fullName = "New Doctor", franchiseId = fid, jobTitle = "Doctor", roleCodes = new[] { RoleCatalog.Medical } });
@@ -101,12 +101,12 @@ public class TradeLifecycleTests(ApiFactory api)
     [Fact]
     public async Task Full_trade_from_offer_to_official_transfer()
     {
-        var mumDirector = await api.LoginAsync("cricket.director.mum@demo.local");
-        var mumOwner = await api.LoginAsync("owner.mum@demo.local");
-        var mumOps = await api.LoginAsync("team.operations.mum@demo.local");
-        var chnDirector = await api.LoginAsync("cricket.director.chn@demo.local");
-        var chnOwner = await api.LoginAsync("owner.chn@demo.local");
-        var chnOps = await api.LoginAsync("team.operations.chn@demo.local");
+        var mumDirector = await api.LoginAsync("cricket.director.mi@demo.local");
+        var mumOwner = await api.LoginAsync("owner.mi@demo.local");
+        var mumOps = await api.LoginAsync("team.operations.mi@demo.local");
+        var chnDirector = await api.LoginAsync("cricket.director.csk@demo.local");
+        var chnOwner = await api.LoginAsync("owner.csk@demo.local");
+        var chnOps = await api.LoginAsync("team.operations.csk@demo.local");
         var league = await api.LoginAsync("league@demo.local");
 
         var mumSquad = await mumDirector.OkAsync(mumDirector.GetAsync("squad"));
@@ -195,8 +195,8 @@ public class TradeLifecycleTests(ApiFactory api)
     [Fact]
     public async Task Trades_can_be_rejected_and_withdrawn()
     {
-        var mum = await api.LoginAsync("ceo.mum@demo.local");
-        var chn = await api.LoginAsync("ceo.chn@demo.local");
+        var mum = await api.LoginAsync("ceo.mi@demo.local");
+        var chn = await api.LoginAsync("ceo.csk@demo.local");
         var mumSquad = await mum.OkAsync(mum.GetAsync("squad"));
         var chnId = (await chn.OkAsync(chn.GetAsync("auth/me"))).GetProperty("activeFranchiseId").GetString()!;
         var pid = mumSquad.GetProperty("players").EnumerateArray().Last().GetProperty("playerId").GetString();
@@ -221,10 +221,10 @@ public class AuctionTests(ApiFactory api)
     public async Task Live_bidding_validates_rules_handles_races_and_books_the_sale()
     {
         var league = await api.LoginAsync("league@demo.local");
-        var blr = await api.LoginAsync("auction.blr@demo.local");
-        var kol = await api.LoginAsync("auction.kol@demo.local");
-        var del = await api.LoginAsync("auction.del@demo.local");
-        var viewer = await api.LoginAsync("viewer.mum@demo.local");
+        var blr = await api.LoginAsync("auction.rcb@demo.local");
+        var kol = await api.LoginAsync("auction.kkr@demo.local");
+        var del = await api.LoginAsync("auction.dc@demo.local");
+        var viewer = await api.LoginAsync("viewer.mi@demo.local");
 
         // A fresh auction with two players from the free-agent pool (the seeded auction stays untouched).
         var pool = await league.OkAsync(league.GetAsync("players?status=AvailableForAuction&pageSize=50"));
@@ -303,7 +303,7 @@ public class SquadRetentionFinanceTests(ApiFactory api)
     [Fact]
     public async Task Retention_submission_charges_the_purse_and_releases_the_rest_once()
     {
-        var owner = await api.LoginAsync("owner.hyd@demo.local");
+        var owner = await api.LoginAsync("owner.srh@demo.local");
         var overview = await owner.OkAsync(owner.GetAsync("retention"));
         var squad = overview.GetProperty("squad").EnumerateArray().ToList();
         var capped = squad.Where(p => p.GetProperty("isCapped").GetBoolean() && !p.GetProperty("isOverseas").GetBoolean()).Take(2).Select(p => p.GetProperty("playerId").GetString()).ToList();
@@ -327,7 +327,7 @@ public class SquadRetentionFinanceTests(ApiFactory api)
     [Fact]
     public async Task Playing_xi_is_validated_against_season_rules()
     {
-        var coach = await api.LoginAsync("head.coach.mum@demo.local");
+        var coach = await api.LoginAsync("head.coach.mi@demo.local");
         var squad = await coach.OkAsync(coach.GetAsync("squad"));
         var players = squad.GetProperty("players").EnumerateArray().ToList();
         var overseas = players.Where(p => p.GetProperty("isOverseas").GetBoolean()).Take(5).ToList();
@@ -343,7 +343,7 @@ public class SquadRetentionFinanceTests(ApiFactory api)
     [Fact]
     public async Task Large_expenses_need_approval_rights_and_duplicates_are_refused()
     {
-        var finance = await api.LoginAsync("finance.manager.mum@demo.local");
+        var finance = await api.LoginAsync("finance.manager.mi@demo.local");
         var big = await finance.PostAsync("finance/expenses", new { description = "Stadium upgrade", amount = 60_000_000, category = "OtherExpense", reference = "INV-1", idempotencyKey = "k-big" });
         Assert.Equal(HttpStatusCode.Forbidden, big.Status);
         await finance.OkAsync(finance.PostAsync("finance/expenses", new { description = "Kit", amount = 500_000, category = "OtherExpense", reference = "INV-2", idempotencyKey = "k-kit" }));
@@ -356,7 +356,7 @@ public class SquadRetentionFinanceTests(ApiFactory api)
     [Fact]
     public async Task Reports_export_as_pdf_excel_and_csv()
     {
-        var owner = await api.LoginAsync("owner.mum@demo.local");
+        var owner = await api.LoginAsync("owner.mi@demo.local");
         foreach (var (format, type) in new[] { ("pdf", "application/pdf"), ("xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"), ("csv", "text/csv") })
         {
             using var res = await owner.Http.GetAsync($"/api/v1/reports/squad/export?format={format}");
@@ -372,7 +372,7 @@ public class SquadRetentionFinanceTests(ApiFactory api)
     [Fact]
     public async Task Statistics_carry_their_source_and_analysis_is_computed()
     {
-        var analyst = await api.LoginAsync("analyst.mum@demo.local");
+        var analyst = await api.LoginAsync("analyst.mi@demo.local");
         var players = await analyst.OkAsync(analyst.GetAsync("players?sort=runs&desc=true&pageSize=1"));
         var id = players.GetProperty("items")[0].GetProperty("id").GetString();
         var stats = await analyst.OkAsync(analyst.GetAsync($"players/{id}/statistics"));

@@ -17,7 +17,7 @@ dotnet test
   - retention submission (costs, single submission, release of the rest), Playing XI rule validation, finance approval thresholds and duplicates
   - PDF, Excel and CSV exports and dashboard sections; data provenance in statistics
 
-**Current status:** 40 of 43 tests pass. 3 integration tests fail and have not been investigated yet.
+**Current status:** the tests were written against the earlier fictional league (seeded trade, synthetic statistics and prices for every player). After switching to real squads, several integration tests need updating (account names were updated; scenarios that relied on seeded trades, prices or statistics for squad players were not). Unit tests are unaffected.
 
 ## Manual / browser checks
 

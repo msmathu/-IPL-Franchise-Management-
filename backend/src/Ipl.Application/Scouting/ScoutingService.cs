@@ -12,7 +12,7 @@ public record AssignmentDto(Guid Id, Guid? PlayerId, string? PlayerName, string 
 
 public record SaveAssignmentRequest(Guid? PlayerId, string Title, string Description, Guid AssignedToUserId, DateOnly? DueDate, AssignmentStatus Status);
 
-public record ReportListItemDto(Guid Id, Guid PlayerId, string PlayerName, string Role, int Age, string Scout, DateOnly ObservedOn, string MatchObserved,
+public record ReportListItemDto(Guid Id, Guid PlayerId, string PlayerName, string Role, int? Age, string Scout, DateOnly ObservedOn, string MatchObserved,
     int OverallRating, string Recommendation, string Status, int Documents);
 
 public record ReportDto(Guid Id, Guid PlayerId, string PlayerName, Guid ScoutUserId, string Scout, Guid? AssignmentId, string MatchObserved, DateOnly ObservedOn,
@@ -26,7 +26,7 @@ public record SaveReportRequest(Guid PlayerId, Guid? AssignmentId, string MatchO
 
 public record DocumentDto(Guid Id, string FileName, string ContentType, long SizeBytes, DateTime UploadedAt);
 
-public record EmergingPlayerDto(Guid PlayerId, string Name, int Age, string Role, string Country, string? Franchise, decimal Rating, string Confidence,
+public record EmergingPlayerDto(Guid PlayerId, string Name, int? Age, string Role, string Country, string? Franchise, decimal Rating, string Confidence,
     decimal PotentialScore, decimal FormScore, int Matches, int ScoutReports);
 
 public class ScoutingService(IAppDbContext db, ICurrentUser me, IClock clock, IAuditService audit, INotificationService notify, RatingService ratings, DocumentService documents)

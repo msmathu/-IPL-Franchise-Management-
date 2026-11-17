@@ -1,15 +1,18 @@
 # Data sources, licensing & CSV import
 
-## Demo data
+## Reference data seeded on first start
 
-With `DemoData:Enabled=true` on an empty database, the platform creates a **fictional** league so every screen and workflow can be tried:
+With `DemoData:Enabled=true` on an empty database:
 
-- 10 invented franchises (for example "Mumbai Mariners", with invented grounds, owners and colours) and about 270 invented players. Names are random combinations; any resemblance to real people is coincidental.
-- Invented competitions ("Demo Premier League", "Demo Domestic T20 Trophy", "Demo T20 Internationals", …).
-- **Synthetic** match-by-match statistics from a seeded generator, with season and career totals computed from them. Every row has `DataSource = "Demo generator (synthetic) — not real statistics"` and every demo entity has `IsDemo = true`. The web app shows a demo banner.
-- A current season with squads, contracts, purses, an upcoming auction pool, a pending trade, scouting reports, a medical case, messages and budgets.
+- **The 10 real franchises** (Chennai Super Kings, Mumbai Indians, Royal Challengers Bengaluru, Kolkata Knight Riders, Delhi Capitals, Rajasthan Royals, Punjab Kings, Sunrisers Hyderabad, Lucknow Super Giants, Gujarat Titans): names, codes, cities, home grounds, owners as publicly reported, team colours and IPL finals 2008–2025 (champion and runner-up only).
+- **243 real players in their IPL 2026 squads**, from the published post-auction lists (Outlook India, cross-checked with Wisden; see `backend/src/Ipl.Infrastructure/Persistence/RealSquads.cs`). Recorded: name, team, role group, country, overseas/capped status, keeper, and batting hand / bowling style where publicly known. **Not recorded** (shown as "—" / "Not recorded"): dates of birth, prices (except the few stated by the sources), statistics, injuries. Nothing about real players is invented.
+- The current season (2027) starts with these squads carried forward, because official 2027 retention lists were not published at the time of seeding. Update squads through the retention, trade and auction workflows (or import).
+- **Fictional "demo prospects"**: 48 invented players, clearly named "… (Demo)" and flagged `IsDemo`, with **synthetic** statistics (`DataSource` says so), used for the practice auction, scouting and the analytics screens.
+- Demo user accounts (fictional people) for every role; no demo trades, injuries or medical records are created for real players.
 
-Demo statistics are **not real**. Don't use them for decisions.
+### Images and logos
+
+No logos or photos are bundled: official league/franchise logos are trademarks and player photos are copyrighted. The app shows the franchise's short code on its team colour, and player initials. To show real images, save an **https URL to an image you have the rights to use** (your own photographer, an agency licence, the franchise's permission, or a Wikimedia Commons file used under its licence): player photos in *Player → Career & availability → Photo* (`players.manage`), franchise logos in *Franchise → Edit → Logo URL*. Broken links fall back to the badge.
 
 ## Real data
 

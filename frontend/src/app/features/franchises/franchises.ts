@@ -39,7 +39,7 @@ import { ChartView, Monogram, PALETTE, PageHeader, StatCard, StateView, StatusCh
         <div class="grid cols-3">
           @for (f of res.value(); track f.id) {
             <a class="card fr" [routerLink]="['/franchises', f.id]" [style.border-top-color]="f.primaryColor">
-              <div class="row"><app-monogram [name]="f.name" [color]="f.primaryColor" [size]="44" />
+              <div class="row"><app-monogram [name]="f.name" [code]="f.code" [logoUrl]="f.logoUrl" [color]="f.primaryColor" [size]="48" />
                 <div><h2>{{ f.name }}</h2><span class="muted">{{ f.city }} · {{ f.homeGround }}</span></div></div>
               <div class="row small">
                 <span>🏆 {{ f.titles }} title{{ f.titles === 1 ? '' : 's' }}</span><span>{{ f.squadSize }} players</span>
@@ -100,7 +100,7 @@ function franchiseForm(fb: FormBuilder) {
       <app-state [loading]="res.isLoading()" [error]="res.error()" (retry)="res.reload()">
         @if (res.value(); as f) {
           <div class="row">
-            <app-monogram [name]="f.name" [color]="f.primaryColor" [size]="56" />
+            <app-monogram [name]="f.name" [code]="f.code" [logoUrl]="f.logoUrl" [color]="f.primaryColor" [size]="60" />
             <app-page-header [title]="f.name" [subtitle]="f.city + ' · ' + f.homeGround + (f.foundedYear ? ' · since ' + f.foundedYear : '')" />
             <span class="spacer"></span>
             @if (f.isDemo) { <span class="tag">Fictional demo franchise</span> }

@@ -11,7 +11,7 @@ public record AuctionSummaryDto(Guid Id, string Name, int SeasonId, string Seaso
     int TotalLots, int Sold, int Unsold, int Pending, decimal TotalSpent);
 
 public record LotDto(
-    Guid Id, Guid PlayerId, string PlayerName, string Role, string Country, bool IsOverseas, bool IsCapped, int Age, string SetName, int SetNumber,
+    Guid Id, Guid PlayerId, string PlayerName, string Role, string Country, bool IsOverseas, bool IsCapped, int? Age, string SetName, int SetNumber,
     int LotNumber, decimal BasePrice, string Status, decimal? CurrentBid, Guid? CurrentBidFranchiseId, string? CurrentBidFranchise,
     DateTime? LastBidAt, int Round, string? PhotoUrl);
 
@@ -472,7 +472,7 @@ public class AuctionService(IAppDbContext db, ICurrentUser me, IClock clock, IRu
         return db.AuctionPlayers.AsNoTracking().Where(l => l.AuctionEventId == auctionId && (status == null || l.Status == status))
             .OrderBy(l => l.Round).ThenBy(l => l.SetNumber).ThenBy(l => l.LotNumber)
             .Select(l => new LotDto(l.Id, l.PlayerId, l.Player!.FullName, l.Player.PrimaryRole!.Name, l.Player.Country!.Name, l.Player.IsOverseas,
-                l.Player.IsCapped, today.Year - l.Player.DateOfBirth.Year, l.SetName, l.SetNumber, l.LotNumber, l.BasePrice, l.Status.ToString(), l.CurrentBid,
+                l.Player.IsCapped, l.Player.DateOfBirth == null ? null : today.Year - l.Player.DateOfBirth.Value.Year, l.SetName, l.SetNumber, l.LotNumber, l.BasePrice, l.Status.ToString(), l.CurrentBid,
                 l.CurrentBidFranchiseId, db.Franchises.Where(f => f.Id == l.CurrentBidFranchiseId).Select(f => f.ShortName).FirstOrDefault(),
                 l.LastBidAt, l.Round, l.Player.PhotoUrl));
     }

@@ -7,7 +7,7 @@ namespace Ipl.Application.Squads;
 
 public record SquadPlayerDto(
     Guid PlayerId, string Name, string Role, string RoleCode, bool IsWicketKeeper, bool IsOverseas, bool IsCapped, bool CanBowl,
-    int Age, decimal Price, string Acquisition, string Availability, decimal Rating, string FormTrend);
+    int? Age, decimal? Price, string Acquisition, string Availability, decimal? Rating, string FormTrend, string? PhotoUrl);
 
 public record SquadDto(
     Guid FranchiseId, string FranchiseName, int SeasonId, string Season, CompositionDto Composition, TeamStrengthDto Strength,
@@ -54,11 +54,12 @@ public class SquadService(IAppDbContext db, ICurrentUser me, IClock clock, IRule
                     var r = rated.GetValueOrDefault(m.PlayerId);
                     var form = r?.Factors.FirstOrDefault(f => f.Factor == "Recent form");
                     var career = r?.Factors.FirstOrDefault(f => f.Factor == "Career performance");
-                    var trend = form is null || career is null ? "Unknown"
+                    var trend = r is null || r.Confidence == "None" ? "No statistics"
+                        : form is null || career is null ? "Unknown"
                         : form.Score > career.Score + 8 ? "Rising"
                         : form.Score < career.Score - 8 ? "Falling" : "Steady";
                     return new SquadPlayerDto(m.PlayerId, m.Name, m.RoleName, m.RoleCode, m.IsWicketKeeper, m.IsOverseas, m.IsCapped, m.CanBowl, m.Age,
-                        m.Price, m.Acquisition, m.Availability, r?.Rating ?? 0, trend);
+                        m.Price > 0 ? m.Price : null, m.Acquisition, m.Availability, r is null || r.Confidence == "None" ? null : r.Rating, trend, m.PhotoUrl);
                 }).ToList(),
             departed);
     }

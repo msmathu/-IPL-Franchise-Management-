@@ -9,7 +9,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Ipl.Application.Analytics;
 
 public record ComparedPlayerDto(
-    Guid PlayerId, string Name, int Age, string Country, string Role, string? Franchise, string Availability, bool IsOverseas,
+    Guid PlayerId, string Name, int? Age, string Country, string Role, string? Franchise, string Availability, bool IsOverseas,
     StatLineDto? T20Franchise, StatLineDto? Domestic, StatLineDto? International, FormSummaryDto RecentForm, int FranchiseT20Matches,
     decimal Rating, decimal? EstimatedValue, string? ValueRange, IReadOnlyDictionary<string, decimal> Radar, IReadOnlyList<string> DataSources);
 
@@ -124,7 +124,7 @@ public class ComparisonService(IAppDbContext db, ICurrentUser me, IClock clock, 
 
 public record ValueGapDto(Guid PlayerId, string Name, string Role, string? Franchise, decimal Rating, decimal ModelMid, decimal ReferencePrice, decimal Gap, string Reference);
 
-public record AuctionTargetDto(Guid PlayerId, string Name, string Role, bool IsOverseas, int Age, decimal Rating, decimal Low, decimal Mid, decimal High,
+public record AuctionTargetDto(Guid PlayerId, string Name, string Role, bool IsOverseas, int? Age, decimal Rating, decimal Low, decimal Mid, decimal High,
     decimal? BasePrice, string FitReason, int Priority);
 
 public record SquadNeedDto(string Need, string Detail, int Severity);

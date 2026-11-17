@@ -45,7 +45,7 @@ import { Monogram } from '../shared/ui';
           @if (mobile()) { <button mat-icon-button (click)="menuOpen.set(true)" aria-label="Open menu"><mat-icon>menu</mat-icon></button> }
           @if (auth.activeFranchise(); as f) {
             <button mat-button [matMenuTriggerFor]="franchiseMenu" class="franchise">
-              <app-monogram [name]="f.name" [color]="f.primaryColor" [size]="28" />
+              <app-monogram [name]="f.name" [code]="f.code" [color]="f.primaryColor" [size]="30" />
               <span>{{ f.name }}</span>
               @if (switchable()) { <mat-icon>expand_more</mat-icon> }
             </button>
@@ -55,7 +55,7 @@ import { Monogram } from '../shared/ui';
           <mat-menu #franchiseMenu="matMenu">
             @if (auth.user()?.isLeagueWide) { <p class="menu-note muted small">League staff see every franchise. Pick one to act for it:</p> }
             @for (f of auth.user()?.franchises ?? []; track f.id) {
-              <button mat-menu-item (click)="switchTo(f.id)"><app-monogram [name]="f.name" [color]="f.primaryColor" [size]="22" /> {{ f.name }}</button>
+              <button mat-menu-item (click)="switchTo(f.id)"><app-monogram [name]="f.name" [code]="f.code" [color]="f.primaryColor" [size]="24" /> {{ f.name }}</button>
             }
           </mat-menu>
           <span class="spacer"></span>
@@ -74,7 +74,7 @@ import { Monogram } from '../shared/ui';
             <button mat-menu-item (click)="auth.logout()"><mat-icon>logout</mat-icon>Sign out</button>
           </mat-menu>
         </mat-toolbar>
-        <div class="demo-strip">Demo environment — all franchises, players and statistics are fictional sample data.</div>
+        <div class="demo-strip">Squads: published IPL 2026 lists. Prices, ages and statistics of real players are not loaded yet (import from a licensed provider). Players marked “(Demo)” are fictional.</div>
         <router-outlet />
       </mat-sidenav-content>
     </mat-sidenav-container>

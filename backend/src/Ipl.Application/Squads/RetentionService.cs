@@ -11,7 +11,7 @@ public record RetentionRulesDto(
     decimal UncappedCost, decimal Purse, int MaxSquad, int MaxOverseasSquad);
 
 public record RetentionCandidateDto(
-    Guid PlayerId, string Name, string Role, bool IsCapped, bool IsOverseas, int Age, decimal CurrentSalary, string Availability, bool IsRetained, bool IsReleased);
+    Guid PlayerId, string Name, string Role, bool IsCapped, bool IsOverseas, int? Age, decimal CurrentSalary, string Availability, bool IsRetained, bool IsReleased);
 
 public record RetentionSlotDto(Guid PlayerId, string Name, string Category, int SlotNumber, decimal Cost, bool IsOverseas);
 

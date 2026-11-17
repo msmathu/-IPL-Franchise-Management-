@@ -41,8 +41,8 @@ const shellStyles = `
           <button mat-flat-button type="submit" [disabled]="busy()">{{ busy() ? 'Signing in…' : 'Sign in' }}</button>
         </form>
         <a routerLink="/forgot-password">Forgot password?</a>
-        <div class="demo">Demo accounts (password <code>Demo&#64;2026pass</code>): <code>owner.mum&#64;demo.local</code>, <code>cricket.director.mum&#64;demo.local</code>,
-          <code>auction.manager.mum&#64;demo.local</code>, <code>scout.mum&#64;demo.local</code>, <code>medical.staff.mum&#64;demo.local</code>, <code>owner.chn&#64;demo.local</code>,
+        <div class="demo">Demo accounts (password <code>Demo&#64;2026pass</code>): <code>owner.mi&#64;demo.local</code>, <code>cricket.director.mi&#64;demo.local</code>,
+          <code>auction.manager.mi&#64;demo.local</code>, <code>scout.mi&#64;demo.local</code>, <code>medical.staff.mi&#64;demo.local</code>, <code>owner.csk&#64;demo.local</code>,
           <code>league&#64;demo.local</code>, <code>admin&#64;demo.local</code>.</div>
       </section>
     </main>

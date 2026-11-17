@@ -17,7 +17,7 @@ public record RatingWeights(decimal RecentForm, decimal Career, decimal Age, dec
 public record RatingFactorDto(string Factor, decimal Score, decimal Weight, decimal Contribution, string Explanation);
 
 public record PlayerRatingDto(
-    Guid PlayerId, string PlayerName, string Role, int Age, bool IsOverseas, decimal Rating, string Confidence, int MatchesUsed,
+    Guid PlayerId, string PlayerName, string Role, int? Age, bool IsOverseas, decimal Rating, string Confidence, int MatchesUsed,
     IReadOnlyList<RatingFactorDto> Factors, string Method);
 
 public record ValuationFactorDto(string Factor, string Effect, string Explanation);
@@ -117,7 +117,8 @@ public class RatingService(IAppDbContext db, IClock clock, IMemoryCache memory)
             var consistency = last20.Count >= 5
                 ? 100m * last20.Count(l => l.Runs >= 25 || l.Wickets >= 2 || (l.Bowled && l.BallsBowled >= 18 && l.RunsConceded * 6m / l.BallsBowled <= 7.5m)) / last20.Count
                 : 50m;
-            var ageScore = age switch { <= 20 => 75, <= 23 => 88, <= 31 => 100, _ => Math.Max(30, 100 - (age - 31) * 9) };
+            // Unknown age (not published by the source) gets a neutral score instead of a guess.
+            var ageScore = age switch { null => 70, <= 20 => 75, <= 23 => 88, <= 31 => 100, _ => Math.Max(30, 100 - (age.Value - 31) * 9) };
             var maxLevel = lines.Count > 0 ? lines.Max(l => l.Level) : totals.Where(t => t.PlayerId == p.Id).Select(t => t.Level).DefaultIfEmpty(1).Max();
             var levelScore = Math.Clamp(maxLevel * 20m, 20, 100);
             var availStatus = avail.GetValueOrDefault(p.Id, AvailabilityStatus.Available);
@@ -127,21 +128,22 @@ public class RatingService(IAppDbContext db, IClock clock, IMemoryCache memory)
                 AvailabilityStatus.Personal => 50m, AvailabilityStatus.Injured => 20m, _ => 10m,
             };
             // Potential: young players whose recent form is ahead of their career numbers.
-            var potential = age <= 25 ? Math.Clamp(60 + (formScore - careerScore) * 1.5m + (25 - age) * 3, 0, 100) : Math.Max(20, 60 - (age - 25) * 5);
+            var potential = age is null ? 50m : age <= 25 ? Math.Clamp(60 + (formScore - careerScore) * 1.5m + (25 - age.Value) * 3, 0, 100) : Math.Max(20, 60 - (age.Value - 25) * 5);
 
             void Add(string name, decimal score, decimal weight, string note) =>
                 factors.Add(new RatingFactorDto(name, Math.Round(score, 1), weight, Math.Round(score * weight / weights.Total, 2), note));
 
             Add("Recent form", formScore, weights.RecentForm, recent.Count >= 3 ? $"Last {recent.Count} T20 matches: {Describe(role, recent)}" : "Fewer than 3 recent matches: career score used");
             Add("Career performance", careerScore, weights.Career, careerNote);
-            Add("Age profile", ageScore, weights.Age, $"Age {age} (peak band 24–31)");
+            Add("Age profile", ageScore, weights.Age, age is null ? "Date of birth not recorded: neutral score" : $"Age {age} (peak band 24–31)");
             Add("Consistency", consistency, weights.Consistency, last20.Count >= 5 ? $"{consistency:0}% of the last {last20.Count} matches had a meaningful contribution" : "Not enough matches: neutral");
             Add("Competition level", levelScore, weights.CompetitionLevel, $"Highest level played: {maxLevel} of 5");
             Add("Availability", availabilityScore, weights.Availability, $"Public status: {availStatus}");
-            Add("Development potential", potential, weights.Potential, age <= 25 ? "Young player: recent form vs career trend" : "Established player: limited upside");
+            Add("Development potential", potential, weights.Potential, age is null ? "Age unknown: neutral" : age <= 25 ? "Young player: recent form vs career trend" : "Established player: limited upside");
 
             var rating = Math.Round(factors.Sum(f => f.Contribution), 1);
-            var confidence = lines.Count >= 30 ? "High" : lines.Count >= 10 ? "Medium" : "Low";
+            var hasData = lines.Count > 0 || totals.Any(t => t.PlayerId == p.Id);
+            var confidence = !hasData ? "None" : lines.Count >= 30 ? "High" : lines.Count >= 10 ? "Medium" : "Low";
             result[p.Id] = new PlayerRatingDto(p.Id, p.FullName, p.RoleName, age, p.IsOverseas, rating, confidence, lines.Count, factors,
                 "Weighted sum of the factors below. Weights are configurable by administrators; only recorded statistics are used.");
         }

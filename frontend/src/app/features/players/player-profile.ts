@@ -16,7 +16,7 @@ import { debounceTime, distinctUntilChanged, of, switchMap } from 'rxjs';
 import { Api, Paged } from '../../core/api';
 import { Auth } from '../../core/auth';
 import { InrPipe, P, Toast, WordsPipe } from '../../core/services';
-import { ChartView, Monogram, PALETTE, PageHeader, StatCard, StateView, StatusChip } from '../../shared/ui';
+import { ChartView, Monogram, PALETTE, PageHeader, PlayerAvatar, StatCard, StateView, StatusChip } from '../../shared/ui';
 
 /** Autocomplete search over the player database. */
 @Component({
@@ -204,25 +204,26 @@ export class PlayerAnalysis {
 
 @Component({
   selector: 'app-player-profile',
-  imports: [PageHeader, StateView, StatCard, StatusChip, Monogram, PlayerStats, PlayerAnalysis, InrPipe, WordsPipe, DatePipe, MatTabsModule,
+  imports: [PageHeader, StateView, StatCard, StatusChip, Monogram, PlayerAvatar, PlayerStats, PlayerAnalysis, InrPipe, WordsPipe, DatePipe, MatTabsModule,
     MatButtonModule, MatIconModule, MatFormFieldModule, MatSelectModule, MatInputModule, FormsModule],
   template: `
     <div class="page">
       <app-state [loading]="res.isLoading()" [error]="res.error()" (retry)="res.reload()">
         @if (res.value(); as p) {
           <div class="row">
-            @if (p.franchise; as fr) { <app-monogram [name]="fr.name" [color]="fr.primaryColor" [size]="52" /> }
-            <app-page-header [title]="p.fullName" [subtitle]="p.role + ' · ' + p.country + ' · age ' + p.age + (p.franchise ? ' · ' + p.franchise.name : ' · unsigned')" />
+            <app-avatar [name]="p.fullName" [photoUrl]="p.photoUrl" [color]="p.franchise?.primaryColor ?? '#334155'" [size]="64" />
+            <app-page-header [title]="p.fullName" [subtitle]="p.role + ' · ' + p.country + (p.age !== null ? ' · age ' + p.age : '') + (p.franchise ? ' · ' + p.franchise.name : ' · unsigned')" />
+            @if (p.franchise; as fr) { <app-monogram [name]="fr.name" [code]="fr.code" [logoUrl]="fr.logoUrl" [color]="fr.primaryColor" [size]="44" /> }
             <span class="spacer"></span>
             @if (p.isDemo) { <span class="tag">Fictional demo player</span> }
             <app-chip [text]="p.status | words" /><app-chip [text]="p.availability.status" />
           </div>
           <div class="grid stats">
-            <app-stat label="Batting" [value]="p.battingHand === 'LeftHand' ? 'Left-handed' : 'Right-handed'" />
-            <app-stat label="Bowling" [value]="p.bowlingStyle || 'Does not bowl'" />
+            <app-stat label="Batting" [value]="p.battingHand === 'LeftHand' ? 'Left-handed' : p.battingHand === 'RightHand' ? 'Right-handed' : 'Not recorded'" />
+            <app-stat label="Bowling" [value]="p.bowlingStyle || (p.bowlingType === 'Unknown' ? 'Not recorded' : 'Does not bowl')" />
             <app-stat label="Category" [value]="(p.isOverseas ? 'Overseas' : 'Domestic') + ' · ' + (p.isCapped ? 'Capped' : 'Uncapped')" [hint]="p.isWicketKeeper ? 'Wicketkeeper' : ''" />
-            <app-stat label="Current price" [value]="p.currentPrice | inr" [hint]="p.franchise?.shortName ?? ''" />
-            <app-stat label="Born" [value]="p.dateOfBirth | date: 'd MMM yyyy'" />
+            <app-stat label="Current price" [value]="p.currentPrice ? (p.currentPrice | inr) : 'Not recorded'" [hint]="p.franchise?.name ?? ''" />
+            <app-stat label="Born" [value]="p.dateOfBirth ? (p.dateOfBirth | date: 'd MMM yyyy') : 'Not recorded'" />
           </div>
           <mat-tab-group>
             <mat-tab label="Statistics"><div class="stack tabpad"><app-player-stats [playerId]="p.id" /></div></mat-tab>
@@ -232,7 +233,8 @@ export class PlayerAnalysis {
                 <section class="card"><h2>Player potential rating</h2>
                   <app-state [loading]="rating.isLoading()" [error]="rating.error()" (retry)="rating.reload()">
                     @if (rating.value(); as r) {
-                      <div class="row"><span class="big">{{ r.rating }}</span><span class="muted">/ 100 · confidence {{ r.confidence }} ({{ r.matchesUsed }} matches)</span></div>
+                      @if (r.confidence === 'None') { <p class="warn-text">No statistics are loaded for this player, so the rating below is only a neutral placeholder. Import licensed statistics to rate this player.</p> }
+                      <div class="row"><span class="big">{{ r.confidence === 'None' ? '—' : r.rating }}</span><span class="muted">/ 100 · confidence {{ r.confidence }} ({{ r.matchesUsed }} matches)</span></div>
                       <table class="data"><tr><th>Factor</th><th class="num">Score</th><th class="num">Weight</th><th class="num">Points</th><th>How it was calculated</th></tr>
                         @for (f of r.factors; track f.factor) { <tr><td>{{ f.factor }}</td><td class="num">{{ f.score }}</td><td class="num">{{ f.weight }}</td><td class="num">{{ f.contribution }}</td><td class="small">{{ f.explanation }}</td></tr> }</table>
                       <p class="disclaimer">{{ r.method }}</p>
@@ -273,6 +275,13 @@ export class PlayerAnalysis {
                   }
                 </section>
               </div>
+              @if (auth.has(P.playersManage)) {
+                <section class="card"><h2>Photo</h2>
+                  <div class="row"><mat-form-field class="wide"><mat-label>Photo URL (https, licensed image)</mat-label><input matInput [(ngModel)]="photoUrl" /></mat-form-field>
+                    <button mat-stroked-button (click)="savePhoto(p)">Save photo</button></div>
+                  <p class="muted small">Use an image you have the rights to (your own photographer, an agency licence, or a Wikimedia Commons file under its licence). Official league or franchise photos need permission.</p>
+                </section>
+              }
               <p class="muted small">Profile source: {{ p.dataSource }} · updated {{ p.updatedAt | date: 'd MMM yyyy' }}</p>
             </mat-tab>
           </mat-tab-group>
@@ -294,8 +303,17 @@ export class PlayerProfilePage {
   private readonly lookups = rxResource({ stream: () => this.api.get<any>('players/lookups') });
   readonly competitions = computed(() => (this.lookups.value()?.competitions ?? []).filter((c: any) => /T20/.test(c.group)));
   availStatus = 'Available';
+  photoUrl = '';
   availNote = '';
   availReturn = '';
+
+  savePhoto(p: any): void {
+    this.api.put(`players/${this.id()}`, {
+      fullName: p.fullName, displayName: p.displayName, dateOfBirth: p.dateOfBirth, countryId: p.countryId, photoUrl: this.photoUrl || null,
+      battingHand: p.battingHand, bowlingStyle: p.bowlingStyle, bowlingType: p.bowlingType, primaryRoleId: p.primaryRoleId, secondaryRoleId: p.secondaryRoleId,
+      isWicketKeeper: p.isWicketKeeper, isCapped: p.isCapped, status: p.status, careerStatus: p.careerStatus, dataSource: p.dataSource,
+    }).subscribe({ next: () => { this.toast.ok('Photo saved.'); this.res.reload(); }, error: (e) => this.toast.error(e) });
+  }
 
   rerun(): void {
     this.api.post(`players/${this.id()}/valuation`).subscribe({ next: () => this.valuation.reload(), error: (e) => this.toast.error(e) });

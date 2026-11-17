@@ -7,7 +7,7 @@ namespace Ipl.Application.Squads;
 /// <summary>One squad member with what composition rules need.</summary>
 public record SquadMember(
     Guid PlayerId, string Name, string RoleCode, string RoleName, bool IsWicketKeeper, bool IsOverseas, bool IsCapped,
-    bool CanBowl, decimal Price, decimal Salary, int Age, string Availability, string Acquisition);
+    bool CanBowl, decimal Price, decimal Salary, int? Age, string Availability, string Acquisition, string? PhotoUrl = null);
 
 public record CompositionDto(
     int Total, int Batters, int Bowlers, int AllRounders, int WicketKeepers, int Overseas, int Uncapped, int Domestic,
@@ -15,7 +15,7 @@ public record CompositionDto(
 
 public static class SquadMath
 {
-    public static bool IsBowlingOption(string roleCode, BowlingType type) => roleCode is "bowler" or "allrounder" || type != BowlingType.None && roleCode != "wk_batter";
+    public static bool IsBowlingOption(string roleCode, BowlingType type) => roleCode is "bowler" or "allrounder" || type is not (BowlingType.None or BowlingType.Unknown) && roleCode != "wk_batter";
 
     public static CompositionDto Compose(IReadOnlyCollection<SquadMember> squad, SeasonRules rules)
     {
@@ -49,7 +49,7 @@ public static class SquadMath
             .Select(s => new
             {
                 s.PlayerId, s.Player!.FullName, Role = s.Player.PrimaryRole!.Code, RoleName = s.Player.PrimaryRole.Name, s.Player.IsWicketKeeper,
-                s.Player.IsOverseas, s.Player.IsCapped, s.Player.BowlingType, s.Price, s.Player.DateOfBirth, s.Acquisition,
+                s.Player.IsOverseas, s.Player.IsCapped, s.Player.BowlingType, s.Price, s.Player.DateOfBirth, s.Acquisition, s.Player.PhotoUrl,
                 // Contracts are confidential: IgnoreQueryFilters is safe here because only the salary number is used for rule checks.
                 Salary = db.PlayerContracts.IgnoreQueryFilters().Where(c => c.PlayerId == s.PlayerId && c.FranchiseId == franchiseId && c.Status == ContractStatus.Active)
                     .Select(c => (decimal?)c.AnnualSalary).FirstOrDefault(),
@@ -58,6 +58,6 @@ public static class SquadMath
             .ToListAsync(ct);
         return rows.Select(r => new SquadMember(r.PlayerId, r.FullName, r.Role, r.RoleName, r.IsWicketKeeper, r.IsOverseas, r.IsCapped,
             IsBowlingOption(r.Role, r.BowlingType), r.Price, r.Salary ?? r.Price, Players.PlayerService.AgeOn(r.DateOfBirth, today),
-            (r.Avail ?? AvailabilityStatus.Available).ToString(), r.Acquisition.ToString())).ToList();
+            (r.Avail ?? AvailabilityStatus.Available).ToString(), r.Acquisition.ToString(), r.PhotoUrl)).ToList();
     }
 }

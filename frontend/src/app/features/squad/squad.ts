@@ -6,11 +6,11 @@ import { RouterLink } from '@angular/router';
 import { ChartConfiguration } from 'chart.js';
 import { Api } from '../../core/api';
 import { InrPipe, WordsPipe } from '../../core/services';
-import { ChartView, PALETTE, PageHeader, StatCard, StateView, StatusChip } from '../../shared/ui';
+import { ChartView, PALETTE, PageHeader, PlayerAvatar, StatCard, StateView, StatusChip } from '../../shared/ui';
 
 @Component({
   selector: 'app-squad',
-  imports: [PageHeader, StateView, StatCard, StatusChip, ChartView, RouterLink, InrPipe, WordsPipe, DatePipe, MatButtonToggleModule],
+  imports: [PageHeader, StateView, StatCard, StatusChip, ChartView, PlayerAvatar, RouterLink, InrPipe, WordsPipe, DatePipe, MatButtonToggleModule],
   template: `
     <div class="page">
       <app-state [loading]="res.isLoading()" [error]="res.error()" (retry)="res.reload()">
@@ -22,7 +22,7 @@ import { ChartView, PALETTE, PageHeader, StatCard, StateView, StatusChip } from 
             <app-stat label="Batters · bowlers" [value]="s.composition.batters + ' · ' + s.composition.bowlers" />
             <app-stat label="All-rounders · keepers" [value]="s.composition.allRounders + ' · ' + s.composition.wicketKeepers" />
             <app-stat label="Uncapped" [value]="s.composition.uncapped" />
-            <app-stat label="Squad value" [value]="s.squadValue | inr" [hint]="'Purse left ' + (s.purseRemaining | inr)" />
+            <app-stat label="Squad value" [value]="s.squadValue ? (s.squadValue | inr) : 'Not recorded'" [hint]="'Purse left ' + (s.purseRemaining | inr)" />
           </div>
           @for (w of s.composition.warnings; track w) { <p class="warn-text small">⚠ {{ w }}</p> }
           @for (n of s.strength.notes; track n) { <p class="muted small">{{ n }}</p> }
@@ -42,9 +42,9 @@ import { ChartView, PALETTE, PageHeader, StatCard, StateView, StatusChip } from 
             } @else {
               <table class="data"><tr><th>Player</th><th>Role</th><th class="num">Age</th><th>Acquired</th><th class="num">Price</th><th>Availability</th><th class="num">Rating</th><th>Form</th></tr>
                 @for (p of shown(); track p.playerId) {
-                  <tr><td><a [routerLink]="['/players', p.playerId]">{{ p.name }}</a>@if (p.isOverseas) { <span class="tag os">OS</span> }@if (p.isWicketKeeper) { <span class="tag">WK</span> }@if (!p.isCapped) { <span class="tag">Uncapped</span> }</td>
-                    <td>{{ p.role }}</td><td class="num">{{ p.age }}</td><td>{{ p.acquisition | words }}</td><td class="num">{{ p.price | inr }}</td>
-                    <td><app-chip [text]="p.availability" /></td><td class="num">{{ p.rating }}</td>
+                  <tr><td><span class="player-cell"><app-avatar [name]="p.name" [photoUrl]="p.photoUrl" [size]="28" /><a [routerLink]="['/players', p.playerId]">{{ p.name }}</a></span>@if (p.isOverseas) { <span class="tag os">OS</span> }@if (p.isWicketKeeper) { <span class="tag">WK</span> }@if (!p.isCapped) { <span class="tag">Uncapped</span> }</td>
+                    <td>{{ p.role }}</td><td class="num">{{ p.age ?? '—' }}</td><td>{{ p.acquisition === 'Initial' ? 'Squad 2026' : (p.acquisition | words) }}</td><td class="num">{{ p.price ? (p.price | inr) : '—' }}</td>
+                    <td><app-chip [text]="p.availability" /></td><td class="num">{{ p.rating ?? '—' }}</td>
                     <td [class.good-text]="p.formTrend === 'Rising'" [class.bad-text]="p.formTrend === 'Falling'">{{ p.formTrend }}</td></tr>
                 } @empty { <tr><td colspan="8" class="muted">No players in this group.</td></tr> }
               </table>

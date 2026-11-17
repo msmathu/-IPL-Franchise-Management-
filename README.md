@@ -2,7 +2,7 @@
 
 A franchise management platform for T20 franchise cricket. Owners, CEOs, cricket directors, coaches, scouts, analysts, auction managers, finance, medical and operations teams use it to run a franchise through a whole season: player research, statistics, comparison, scouting, valuation, retention and releases, player trading, live auctions, squad and Playing XI planning, contracts and finance, communication and reporting.
 
-> **Independent software.** It is not affiliated with, endorsed by or connected to the IPL, BCCI or any franchise. It ships with **no official logos, branding or proprietary data**. The included demo league is entirely fictional (see [Data & licensing](docs/DATA.md)).
+> **Independent software.** It is not affiliated with, endorsed by or connected to the IPL, BCCI or any franchise. Franchise and player **names and squad lists** are included as factual reference data (published IPL 2026 squads); **no official logos, player photos, prices or statistics** are bundled. Add them from licensed sources (see [Data & licensing](docs/DATA.md)).
 
 ## What's inside
 
@@ -67,10 +67,12 @@ Password for every demo account: `Demo@2026pass`.
 | --- | --- |
 | `admin@demo.local` | Platform Super Admin |
 | `league@demo.local` | League Administrator |
-| `owner.mum@demo.local` | Franchise Owner (Mumbai Mariners) |
-| `ceo.mum`, `cricket.director.mum`, `head.coach.mum`, `assistant.coach.mum`, `auction.manager.mum`, `scouting.manager.mum`, `scout.mum`, `analyst.mum`, `finance.manager.mum`, `medical.staff.mum`, `team.operations.mum`, `viewer.mum` (all `@demo.local`) | One of each franchise role at Mumbai Mariners |
-| `owner.chn`, `ceo.chn`, `cricket.director.chn`, `auction.manager.chn`, `team.operations.chn` (`@demo.local`) | Chennai Cheetahs (for trades between two franchises) |
-| `owner.<code>`, `auction.<code>` (`blr`, `kol`, `del`, `hyd`, `jai`, `pun`, `lko`, `ahm`) | Owner and auction manager of the other franchises |
+| `owner.mi@demo.local` | Franchise Owner (Mumbai Indians) |
+| `ceo.mi`, `cricket.director.mi`, `head.coach.mi`, `assistant.coach.mi`, `auction.manager.mi`, `scouting.manager.mi`, `scout.mi`, `analyst.mi`, `finance.manager.mi`, `medical.staff.mi`, `team.operations.mi`, `viewer.mi` (all `@demo.local`) | One of each franchise role at Mumbai Indians |
+| `owner.csk`, `ceo.csk`, `cricket.director.csk`, `auction.manager.csk`, `team.operations.csk` (`@demo.local`) | Chennai Super Kings (for trades between two franchises) |
+| `owner.<code>`, `auction.<code>` (`rcb`, `kkr`, `dc`, `rr`, `pbks`, `srh`, `lsg`, `gt`) | Owner and auction manager of the other franchises |
+
+The demo user accounts are fictional; the franchises and squads are real (IPL 2026 squad lists).
 
 Turn the demo data off with `DemoData:Enabled=false` (the default outside Development).
 

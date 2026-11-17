@@ -33,7 +33,7 @@ import { ChartView, PALETTE, PageHeader, StatCard, StateView, StatusChip } from 
           }
           @if (d.owner; as o) {
             <div class="grid stats">
-              <app-stat label="Squad value" [value]="o.squadValue | inr" />
+              <app-stat label="Squad value" [value]="o.squadValue ? (o.squadValue | inr) : 'Not recorded'" />
               <app-stat label="Auction purse left" [value]="o.purseRemaining | inr" [hint]="'of ' + (o.purseTotal | inr)" />
               <app-stat label="Team strength" [value]="o.teamStrength" [hint]="'Rank ' + o.strengthRank + ' in the league (model)'" />
               <app-stat label="Open trades" [value]="o.openTrades" [hint]="o.awaitingMyResponse + ' awaiting your response'" [tone]="o.awaitingMyResponse ? 'warn' : 'normal'" />

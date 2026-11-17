@@ -12,7 +12,7 @@ import { Router, RouterLink } from '@angular/router';
 import { Api, Paged } from '../../core/api';
 import { Auth } from '../../core/auth';
 import { InrPipe, P, Toast, WordsPipe } from '../../core/services';
-import { Monogram, PageHeader, StateView, StatusChip } from '../../shared/ui';
+import { Monogram, PageHeader, PlayerAvatar, StateView, StatusChip } from '../../shared/ui';
 
 export interface Lookups {
   countries: { id: number; code: string; name: string }[];
@@ -26,7 +26,7 @@ export interface Lookups {
 
 @Component({
   selector: 'app-players',
-  imports: [PageHeader, StateView, StatusChip, Monogram, InrPipe, WordsPipe, FormsModule, ReactiveFormsModule, MatFormFieldModule, MatInputModule,
+  imports: [PageHeader, StateView, StatusChip, Monogram, PlayerAvatar, InrPipe, WordsPipe, FormsModule, ReactiveFormsModule, MatFormFieldModule, MatInputModule,
     MatSelectModule, MatButtonModule, MatIconModule, MatPaginatorModule, MatCheckboxModule],
   template: `
     <div class="page">
@@ -92,12 +92,12 @@ export interface Lookups {
             </tr>
             @for (p of res.value()?.items ?? []; track p.id) {
               <tr class="clickable" (click)="open(p.id)">
-                <td><strong>{{ p.fullName }}</strong>@if (p.isOverseas) { <span class="tag os">OS</span> }@if (p.isWicketKeeper) { <span class="tag">WK</span> }@if (p.isDemo) { <span class="tag">Demo</span> }</td>
-                <td>{{ p.age }}</td><td>{{ p.country }}</td><td>{{ p.role }}</td>
-                <td class="small muted">{{ p.battingHand === 'LeftHand' ? 'LHB' : 'RHB' }}{{ p.bowlingStyle ? ' · ' + p.bowlingStyle : '' }}</td>
-                <td>@if (p.franchise; as fr) { <span class="row"><app-monogram [name]="fr.name" [color]="fr.primaryColor" [size]="20" />{{ fr.shortName }}</span> } @else { <span class="muted">Unsigned</span> }</td>
+                <td><span class="player-cell"><app-avatar [name]="p.fullName" [photoUrl]="p.photoUrl" [color]="p.franchise?.primaryColor ?? '#334155'" [size]="30" /><strong>{{ p.fullName }}</strong></span>@if (p.isOverseas) { <span class="tag os">OS</span> }@if (p.isWicketKeeper) { <span class="tag">WK</span> }@if (p.isDemo) { <span class="tag">Demo</span> }</td>
+                <td>{{ p.age ?? '—' }}</td><td>{{ p.country }}</td><td>{{ p.role }}</td>
+                <td class="small muted">{{ p.battingHand === 'LeftHand' ? 'LHB' : p.battingHand === 'RightHand' ? 'RHB' : '—' }}{{ p.bowlingStyle ? ' · ' + p.bowlingStyle : '' }}</td>
+                <td>@if (p.franchise; as fr) { <span class="row"><app-monogram [name]="fr.name" [code]="fr.code" [logoUrl]="fr.logoUrl" [color]="fr.primaryColor" [size]="26" />{{ fr.code }}</span> } @else { <span class="muted">Unsigned</span> }</td>
                 <td><app-chip [text]="p.availability !== 'Available' ? p.availability : (p.status | words)" /></td>
-                <td class="num">{{ p.currentPrice | inr }}</td><td class="num">{{ p.t20Matches }}</td><td class="num">{{ p.t20Runs }}</td>
+                <td class="num">{{ p.currentPrice ? (p.currentPrice | inr) : '—' }}</td><td class="num">{{ p.t20Matches }}</td><td class="num">{{ p.t20Runs }}</td>
                 <td class="num">{{ p.t20StrikeRate ?? '—' }}</td><td class="num">{{ p.t20Wickets }}</td><td class="num">{{ p.t20Economy ?? '—' }}</td>
               </tr>
             }

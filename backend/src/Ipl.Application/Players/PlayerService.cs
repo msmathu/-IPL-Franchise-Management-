@@ -4,10 +4,10 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Ipl.Application.Players;
 
-public record PlayerFranchiseDto(Guid Id, string Name, string ShortName, string PrimaryColor);
+public record PlayerFranchiseDto(Guid Id, string Name, string ShortName, string PrimaryColor, string Code, string? LogoUrl);
 
 public record PlayerListItemDto(
-    Guid Id, string Code, string FullName, string DisplayName, int Age, string Country, string CountryCode, bool IsOverseas,
+    Guid Id, string Code, string FullName, string DisplayName, int? Age, string Country, string CountryCode, bool IsOverseas,
     bool IsCapped, string Role, string RoleCode, string? SecondaryRole, string BattingHand, string BowlingStyle, string BowlingType,
     bool IsWicketKeeper, PlayerFranchiseDto? Franchise, string Status, string Availability, decimal? CurrentPrice,
     int T20Matches, int T20Runs, int T20Wickets, decimal? T20StrikeRate, decimal? T20Economy, string? PhotoUrl, bool IsDemo);
@@ -23,14 +23,14 @@ public record PlayerTeamHistoryDto(int Year, string Franchise, string Acquisitio
 public record AvailabilityDto(string Status, string? PublicNote, DateOnly? ExpectedReturn, DateTime UpdatedAt);
 
 public record PlayerDetailDto(
-    Guid Id, string Code, string FullName, string DisplayName, DateOnly DateOfBirth, int Age, int CountryId, string Country,
+    Guid Id, string Code, string FullName, string DisplayName, DateOnly? DateOfBirth, int? Age, int CountryId, string Country,
     string CountryCode, string? PhotoUrl, string BattingHand, string BowlingStyle, string BowlingType, int PrimaryRoleId, string Role,
     string RoleCode, int? SecondaryRoleId, string? SecondaryRole, bool IsWicketKeeper, bool IsOverseas, bool IsCapped,
     PlayerFranchiseDto? Franchise, string Status, string CareerStatus, AvailabilityDto Availability,
     IReadOnlyList<PlayerTeamHistoryDto> TeamHistory, decimal? CurrentPrice, bool IsDemo, string DataSource, DateTime? UpdatedAt);
 
 public record SavePlayerRequest(
-    string FullName, string DisplayName, DateOnly DateOfBirth, int CountryId, string? PhotoUrl, BattingHand BattingHand,
+    string FullName, string DisplayName, DateOnly? DateOfBirth, int CountryId, string? PhotoUrl, BattingHand BattingHand,
     string BowlingStyle, BowlingType BowlingType, int PrimaryRoleId, int? SecondaryRoleId, bool IsWicketKeeper, bool IsCapped,
     PlayerStatus Status, CareerStatus CareerStatus, string DataSource);
 
@@ -133,8 +133,8 @@ public class PlayerService(IAppDbContext db, ICurrentUser me, IAuditService audi
         var items = rows.Select(x => new PlayerListItemDto(
             x.P.Id, x.P.Code, x.P.FullName, x.P.DisplayName, AgeOn(x.P.DateOfBirth, today), x.Country, x.CountryCode, x.P.IsOverseas,
             x.P.IsCapped, x.Role, x.RoleCode, x.Secondary, x.P.BattingHand.ToString(), x.P.BowlingStyle, x.P.BowlingType.ToString(),
-            x.P.IsWicketKeeper, x.Fr is null ? null : new PlayerFranchiseDto(x.Fr.Id, x.Fr.Name, x.Fr.ShortName, x.Fr.PrimaryColor),
-            x.P.Status.ToString(), (x.Avail ?? AvailabilityStatus.Available).ToString(), x.Price,
+            x.P.IsWicketKeeper, x.Fr is null ? null : new PlayerFranchiseDto(x.Fr.Id, x.Fr.Name, x.Fr.ShortName, x.Fr.PrimaryColor, x.Fr.Code, x.Fr.LogoUrl),
+            x.P.Status.ToString(), (x.Avail ?? AvailabilityStatus.Available).ToString(), x.Price > 0 ? x.Price : null,
             x.Career?.Matches ?? 0, x.Career?.Runs ?? 0, x.Career?.Wickets ?? 0,
             x.Career is { BallsFaced: > 0 } b ? Math.Round(b.Runs * 100m / b.BallsFaced, 2) : null,
             x.Career is { BallsBowled: > 0 } w ? Math.Round(w.RunsConceded * 6m / w.BallsBowled, 2) : null,
@@ -156,11 +156,11 @@ public class PlayerService(IAppDbContext db, ICurrentUser me, IAuditService audi
         return new PlayerDetailDto(p.Id, p.Code, p.FullName, p.DisplayName, p.DateOfBirth, AgeOn(p.DateOfBirth, clock.Today), p.CountryId,
             p.Country!.Name, p.Country.Code, p.PhotoUrl, p.BattingHand.ToString(), p.BowlingStyle, p.BowlingType.ToString(), p.PrimaryRoleId,
             p.PrimaryRole!.Name, p.PrimaryRole.Code, p.SecondaryRoleId, p.SecondaryRole?.Name, p.IsWicketKeeper, p.IsOverseas, p.IsCapped,
-            p.CurrentFranchise is null ? null : new PlayerFranchiseDto(p.CurrentFranchise.Id, p.CurrentFranchise.Name, p.CurrentFranchise.ShortName, p.CurrentFranchise.PrimaryColor),
+            p.CurrentFranchise is null ? null : new PlayerFranchiseDto(p.CurrentFranchise.Id, p.CurrentFranchise.Name, p.CurrentFranchise.ShortName, p.CurrentFranchise.PrimaryColor, p.CurrentFranchise.Code, p.CurrentFranchise.LogoUrl),
             p.Status.ToString(), p.CareerStatus.ToString(),
             avail is null ? new AvailabilityDto(nameof(AvailabilityStatus.Available), null, null, p.CreatedAt)
                 : new AvailabilityDto(avail.Status.ToString(), avail.PublicNote, avail.ExpectedReturn, avail.UpdatedAt),
-            history, price, p.IsDemo, p.DataSource, p.UpdatedAt ?? p.CreatedAt);
+            history, price > 0 ? price : null, p.IsDemo, p.DataSource, p.UpdatedAt ?? p.CreatedAt);
     }
 
     public async Task<Guid> CreateAsync(SavePlayerRequest req, CancellationToken ct)
@@ -221,7 +221,7 @@ public class PlayerService(IAppDbContext db, ICurrentUser me, IAuditService audi
                     ? roles.TryGetValue(sc.ToLowerInvariant(), out var sr) ? sr : throw new FormatException($"unknown role '{sc}'.") : null;
                 var req = new SavePlayerRequest(
                     r.Get("full_name"), r.Get("display_name") is { Length: > 0 } dn ? dn : r.Get("full_name"),
-                    DateOnly.ParseExact(r.Get("date_of_birth"), "yyyy-MM-dd"), country.Id, null,
+                    r.Get("date_of_birth") is { Length: > 0 } d ? DateOnly.ParseExact(d, "yyyy-MM-dd") : null, country.Id, null,
                     Enum.Parse<BattingHand>(r.Get("batting_hand"), true), r.Get("bowling_style"),
                     r.Get("bowling_type") is { Length: > 0 } btv ? Enum.Parse<BowlingType>(btv, true) : BowlingType.None,
                     role.Id, secondary?.Id, Csv.Bool(r.Get("is_wicketkeeper")), Csv.Bool(r.Get("is_capped")),
@@ -277,8 +277,9 @@ public class PlayerService(IAppDbContext db, ICurrentUser me, IAuditService audi
 
     // ------------------------------------------------------------------
 
-    public static int AgeOn(DateOnly dob, DateOnly today)
+    public static int? AgeOn(DateOnly? birth, DateOnly today)
     {
+        if (birth is not { } dob) return null;
         var age = today.Year - dob.Year;
         if (dob > today.AddYears(-age)) age--;
         return age;
@@ -311,7 +312,7 @@ public class PlayerService(IAppDbContext db, ICurrentUser me, IAuditService audi
     {
         if (string.IsNullOrWhiteSpace(r.FullName)) throw new AppValidationException("fullName", "Enter the player's full name.");
         if (string.IsNullOrWhiteSpace(r.DataSource)) throw new AppValidationException("dataSource", "Record where this player's data comes from.");
-        if (r.DateOfBirth > clock.Today.AddYears(-14) || r.DateOfBirth < new DateOnly(1950, 1, 1))
+        if (r.DateOfBirth is { } dob && (dob > clock.Today.AddYears(-14) || dob < new DateOnly(1950, 1, 1)))
             throw new AppValidationException("dateOfBirth", "Enter a realistic date of birth.");
         var country = await db.Countries.FirstOrDefaultAsync(c => c.Id == r.CountryId, ct) ?? throw new AppValidationException("countryId", "Unknown country.");
         if (!await db.PlayerRoles.AnyAsync(x => x.Id == r.PrimaryRoleId, ct)) throw new AppValidationException("primaryRoleId", "Unknown role.");
