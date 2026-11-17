@@ -74,7 +74,7 @@ import { Monogram } from '../shared/ui';
             <button mat-menu-item (click)="auth.logout()"><mat-icon>logout</mat-icon>Sign out</button>
           </mat-menu>
         </mat-toolbar>
-        <div class="demo-strip">Squads: published IPL 2026 lists. Prices, ages and statistics of real players are not loaded yet (import from a licensed provider). Players marked “(Demo)” are fictional.</div>
+        <div class="demo-strip">Squads: published IPL 2026 lists. Statistics: Cricsheet ball-by-ball data (ODC-BY). Prices and ages of real players are not loaded. Players marked “(Demo)” are fictional.</div>
         <router-outlet />
       </mat-sidenav-content>
     </mat-sidenav-container>

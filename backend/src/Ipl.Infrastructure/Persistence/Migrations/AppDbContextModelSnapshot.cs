@@ -942,6 +942,10 @@ namespace Ipl.Infrastructure.Persistence.Migrations
                     b.Property<DateOnly>("Date")
                         .HasColumnType("date");
 
+                    b.Property<string>("ExternalRef")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
                     b.Property<bool>("IsDemo")
                         .HasColumnType("bit");
 
@@ -968,6 +972,10 @@ namespace Ipl.Infrastructure.Persistence.Migrations
                         .HasColumnType("int");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ExternalRef")
+                        .IsUnique()
+                        .HasFilter("[ExternalRef] IS NOT NULL");
 
                     b.HasIndex("CompetitionId", "Year");
 
@@ -1215,6 +1223,10 @@ namespace Ipl.Infrastructure.Persistence.Migrations
                     b.Property<Guid?>("CreatedBy")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("CricsheetId")
+                        .HasMaxLength(16)
+                        .HasColumnType("nvarchar(16)");
+
                     b.Property<Guid?>("CurrentFranchiseId")
                         .HasColumnType("uniqueidentifier");
 
@@ -1287,6 +1299,10 @@ namespace Ipl.Infrastructure.Persistence.Migrations
                         .IsUnique();
 
                     b.HasIndex("CountryId");
+
+                    b.HasIndex("CricsheetId")
+                        .IsUnique()
+                        .HasFilter("[CricsheetId] IS NOT NULL");
 
                     b.HasIndex("CurrentFranchiseId");
 

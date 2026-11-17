@@ -282,6 +282,15 @@ export class PlayerAnalysis {
                   <p class="muted small">Use an image you have the rights to (your own photographer, an agency licence, or a Wikimedia Commons file under its licence). Official league or franchise photos need permission.</p>
                 </section>
               }
+              @if (auth.has(P.statsImport) && !p.isDemo) {
+                <section class="card"><h2>Cricsheet link</h2>
+                  <div class="row"><mat-form-field><mat-label>Cricsheet id</mat-label><input matInput [(ngModel)]="cricsheetId" [placeholder]="p.cricsheetId ?? 'e.g. ba607b88'" /></mat-form-field>
+                    <button mat-stroked-button (click)="saveCricsheet()">Save link</button>
+                    @if (p.cricsheetId) { <span class="small muted">Linked to <a [href]="'https://cricsheet.org/register/' + p.cricsheetId" target="_blank" rel="noopener">{{ p.cricsheetId }}</a></span> }
+                    @else { <span class="small muted">Not linked: no statistics are loaded for this player.</span> }</div>
+                  <p class="muted small">Links are set automatically by the Cricsheet import. Set one by hand only for a player it could not identify; leave the field empty and save to remove the link. Then run the import again (Player Statistics page).</p>
+                </section>
+              }
               <p class="muted small">Profile source: {{ p.dataSource }} · updated {{ p.updatedAt | date: 'd MMM yyyy' }}</p>
             </mat-tab>
           </mat-tab-group>
@@ -304,6 +313,14 @@ export class PlayerProfilePage {
   readonly competitions = computed(() => (this.lookups.value()?.competitions ?? []).filter((c: any) => /T20/.test(c.group)));
   availStatus = 'Available';
   photoUrl = '';
+  cricsheetId = '';
+
+  saveCricsheet(): void {
+    this.api.put(`players/${this.id()}/cricsheet-id`, { cricsheetId: this.cricsheetId.trim() || null }).subscribe({
+      next: () => { this.toast.ok('Cricsheet link saved. Run the Cricsheet import to load the matches.'); this.cricsheetId = ''; this.res.reload(); },
+      error: (e) => this.toast.error(e),
+    });
+  }
   availNote = '';
   availReturn = '';
 

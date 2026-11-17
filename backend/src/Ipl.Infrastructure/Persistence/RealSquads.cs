@@ -66,6 +66,17 @@ public static class RealSquads
     };
 
     // Team | Name | role (bat, wk, ar, bowl) | country | capped (1/0) | batting hand (R, L, ?) | bowling style ("" = does not bowl, "?" = not recorded)
+    /// <summary>
+    /// Cricsheet register ids checked by hand for squad players whose Cricsheet name cannot be matched automatically
+    /// (initials-only names, or no IPL match for the current team yet). Full name → Cricsheet id.
+    /// </summary>
+    public static readonly IReadOnlyDictionary<string, string> CricsheetIds = new Dictionary<string, string>
+    {
+        ["Shreyas Gopal"] = "7a8bd078", ["Rahul Tripathi"] = "77255a9e", ["Rachin Ravindra"] = "ba5e1069",
+        ["Prashant Solanki"] = "c695b423", ["Sam Curran"] = "e94915e6", ["Vignesh Puthur"] = "1e030637",
+        ["Tom Banton"] = "25f7b7d6", ["Prithvi Raj Yarra"] = "cfa4bd2b", ["Luke Wood"] = "65b6943c", ["Jayant Yadav"] = "81049310",
+    };
+
     public const string Players = """
 CSK|Ruturaj Gaikwad|bat|IND|1|R|
 CSK|Dewald Brevis|bat|RSA|1|R|Right-arm leg-break

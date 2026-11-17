@@ -27,6 +27,8 @@ public class Match : Entity
     public string Team2 { get; set; } = "";
     public string? Result { get; set; }
     public string DataSource { get; set; } = "";
+    /// <summary>Provider reference, e.g. "cricsheet:1473512"; unique when set.</summary>
+    public string? ExternalRef { get; set; }
     public bool IsDemo { get; set; }
 }
 

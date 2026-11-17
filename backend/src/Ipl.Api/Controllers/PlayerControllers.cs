@@ -6,6 +6,8 @@ using Ipl.Application.Players;
 using Ipl.Application.Squads;
 using Ipl.Application.Statistics;
 using Ipl.Domain;
+using Ipl.Infrastructure.Persistence;
+using Ipl.Infrastructure.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Ipl.Api.Controllers;
@@ -75,6 +77,13 @@ public class PlayersController(PlayerService players, StatisticsService stats, R
         return await players.ImportCsvAsync(s, ct);
     }
 
+    [HttpPut("{id:guid}/cricsheet-id"), HasPermission(Perm.StatsImport)]
+    public async Task<IActionResult> SetCricsheetId(Guid id, CricsheetLinkRequest req, CancellationToken ct)
+    {
+        await players.SetCricsheetIdAsync(id, req.CricsheetId, ct);
+        return NoContent();
+    }
+
     [HttpPut("{id:guid}/availability"), HasPermission(Perm.AvailabilityManage)]
     public async Task<IActionResult> SetAvailability(Guid id, AvailabilityRequest req, CancellationToken ct)
     {
@@ -99,8 +108,23 @@ public class PlayersController(PlayerService players, StatisticsService stats, R
 }
 
 [Route("api/v{version:apiVersion}/statistics")]
-public class StatisticsController(StatisticsService stats) : ApiControllerBase
+public class StatisticsController(StatisticsService stats, CricsheetImportRunner cricsheet, AppDbContext db, IAuditService audit) : ApiControllerBase
 {
+    /// <summary>Status of the Cricsheet ball-by-ball import (last run, players without a link, licence).</summary>
+    [HttpGet("cricsheet"), HasPermission(Perm.StatsRead)]
+    public Task<CricsheetStatusDto> CricsheetStatus(CancellationToken ct) => cricsheet.StatusAsync(db, ct);
+
+    /// <summary>Starts a Cricsheet import in the background (one at a time).</summary>
+    [HttpPost("cricsheet/import"), HasPermission(Perm.StatsImport)]
+    public async Task<IActionResult> CricsheetImport(CancellationToken ct)
+    {
+        if (!cricsheet.TryStart())
+            throw new ConflictException("A Cricsheet import is already running.");
+        audit.Record("stats.cricsheet-started", "Statistics", null);
+        await db.SaveChangesAsync(ct);
+        return Accepted(await cricsheet.StatusAsync(db, ct));
+    }
+
     [HttpPost("import"), HasPermission(Perm.StatsImport), RequestSizeLimit(10_000_000)]
     public async Task<SeasonStatImportResult> Import(IFormFile file, CancellationToken ct)
     {
@@ -111,6 +135,8 @@ public class StatisticsController(StatisticsService stats) : ApiControllerBase
     [HttpPost("recalculate"), HasPermission(Perm.StatsImport)]
     public async Task<IActionResult> Recalculate(CancellationToken ct) { await stats.RecalculateAsync(null, ct); return NoContent(); }
 }
+
+public record CricsheetLinkRequest(string? CricsheetId);
 
 public record CompareRequest(IReadOnlyList<Guid> PlayerIds);
 

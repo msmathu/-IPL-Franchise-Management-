@@ -63,6 +63,8 @@ public class Player : AuditableEntity, ISoftDelete
     public int CountryId { get; set; }
     public Country? Country { get; set; }
     public string? PhotoUrl { get; set; }
+    /// <summary>Cricsheet register identifier (8 hex characters), used to link ball-by-ball data.</summary>
+    public string? CricsheetId { get; set; }
     public BattingHand BattingHand { get; set; }
     /// <summary>Free text as published, e.g. "Right-arm fast-medium".</summary>
     public string BowlingStyle { get; set; } = "";

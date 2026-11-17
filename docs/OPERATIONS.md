@@ -13,6 +13,9 @@ Settings come from `appsettings.json`, `appsettings.{Environment}.json`, user-se
 | `Auth:MaxFailedLogins` / `LockoutMinutes` | 5 / 15 | |
 | `Auth:AppBaseUrl` | `http://localhost:4200` | Used in e-mailed links (reset, invitation) |
 | `Database:InitializeOnStartup` / `Migrate` | true / true | Applies migrations, syncs roles/permissions, enables read-committed snapshot |
+| `Cricsheet:Datasets` | `["ipl", "t20s_male"]` | Cricsheet archives to import (IPL and men's T20 internationals) |
+| `Cricsheet:AutoImportDays` | 7 | Re-import automatically every N days; 0 = only from the *Player Statistics* page |
+| `Cricsheet:LocalFolder` | empty | Folder with pre-downloaded `{dataset}_json.zip` files, for servers without internet access |
 | `DemoData:Enabled` | false (true in Development) | Creates the fictional demo league on an **empty** database |
 | `DemoData:HistoricSeasons` | 5 | Past seasons to simulate (1–5) |
 | `Redis:Connection` | empty | Empty = in-memory cache |

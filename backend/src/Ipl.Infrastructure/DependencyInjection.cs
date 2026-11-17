@@ -84,6 +84,11 @@ public static class DependencyInjection
         services.AddScoped<DashboardService>();
         services.AddScoped<ExportReportsService>();
 
+        services.AddSingleton(config.GetSection("Cricsheet").Get<CricsheetOptions>() ?? new CricsheetOptions());
+        services.AddScoped<CricsheetImporter>();
+        services.AddSingleton<CricsheetImportRunner>();
+        services.AddHostedService<CricsheetScheduler>();
+
         services.AddScoped<DemoSeeder>();
         services.AddHostedService<ScheduledJobs>();
         services.AddHostedService<EmailDispatcher>();

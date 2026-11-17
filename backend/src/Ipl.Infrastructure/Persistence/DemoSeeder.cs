@@ -189,8 +189,8 @@ public class DemoSeeder(AppDbContext db, IPasswordHasher<User> hasher, DemoSeedO
                 Individual(p, demoT20, y, rng.Int(5, 9), MatchFormat.T20, teams, grounds, matches, lines);
                 Individual(p, demoOd, y, rng.Int(3, 6), MatchFormat.ListA, teams, grounds, matches, lines);
             }
-        await BulkInsertAsync(matches, "Matches", ct);
-        await BulkInsertAsync(lines, "PlayerMatchStatistics", ct);
+        await BulkInsertAsync(db, matches, "Matches", ct);
+        await BulkInsertAsync(db, lines, "PlayerMatchStatistics", ct);
         var compByMatch = matches.ToDictionary(m => m.Id, m => (m.CompetitionId, m.Year));
         var seasonRows = new List<PlayerSeasonStatistic>();
         foreach (var g in lines.GroupBy(l => (l.PlayerId, compByMatch[l.MatchId].CompetitionId, compByMatch[l.MatchId].Year)))
@@ -558,7 +558,8 @@ public class DemoSeeder(AppDbContext db, IPasswordHasher<User> hasher, DemoSeedO
     // ------------------------------------------------------------------ bulk insert
 
     /// <summary>Fast insert of thousands of generated rows with SqlBulkCopy (scalar columns named after properties).</summary>
-    private async Task BulkInsertAsync<T>(IReadOnlyList<T> rows, string table, CancellationToken ct)
+    /// <summary>Fast insert of new rows with SqlBulkCopy (joins the current transaction, if any).</summary>
+    internal static async Task BulkInsertAsync<T>(AppDbContext db, IReadOnlyList<T> rows, string table, CancellationToken ct)
     {
         if (rows.Count == 0) return;
         var entity = db.Model.FindEntityType(typeof(T))!;

@@ -27,7 +27,8 @@ public record PlayerDetailDto(
     string CountryCode, string? PhotoUrl, string BattingHand, string BowlingStyle, string BowlingType, int PrimaryRoleId, string Role,
     string RoleCode, int? SecondaryRoleId, string? SecondaryRole, bool IsWicketKeeper, bool IsOverseas, bool IsCapped,
     PlayerFranchiseDto? Franchise, string Status, string CareerStatus, AvailabilityDto Availability,
-    IReadOnlyList<PlayerTeamHistoryDto> TeamHistory, decimal? CurrentPrice, bool IsDemo, string DataSource, DateTime? UpdatedAt);
+    IReadOnlyList<PlayerTeamHistoryDto> TeamHistory, decimal? CurrentPrice, bool IsDemo, string DataSource, DateTime? UpdatedAt,
+    string? CricsheetId = null);
 
 public record SavePlayerRequest(
     string FullName, string DisplayName, DateOnly? DateOfBirth, int CountryId, string? PhotoUrl, BattingHand BattingHand,
@@ -160,7 +161,31 @@ public class PlayerService(IAppDbContext db, ICurrentUser me, IAuditService audi
             p.Status.ToString(), p.CareerStatus.ToString(),
             avail is null ? new AvailabilityDto(nameof(AvailabilityStatus.Available), null, null, p.CreatedAt)
                 : new AvailabilityDto(avail.Status.ToString(), avail.PublicNote, avail.ExpectedReturn, avail.UpdatedAt),
-            history, price > 0 ? price : null, p.IsDemo, p.DataSource, p.UpdatedAt ?? p.CreatedAt);
+            history, price > 0 ? price : null, p.IsDemo, p.DataSource, p.UpdatedAt ?? p.CreatedAt, p.CricsheetId);
+    }
+
+    /// <summary>Links (or unlinks, with null) a player to a Cricsheet register id; the next Cricsheet import loads the matches.</summary>
+    public async Task SetCricsheetIdAsync(Guid id, string? cricsheetId, CancellationToken ct)
+    {
+        me.Require(Perm.StatsImport);
+        var player = await db.Players.FirstOrDefaultAsync(p => p.Id == id, ct) ?? throw new NotFoundException("Player");
+        var value = string.IsNullOrWhiteSpace(cricsheetId) ? null : cricsheetId.Trim().ToLowerInvariant();
+        if (value is not null && !System.Text.RegularExpressions.Regex.IsMatch(value, "^[0-9a-f]{8}$"))
+            throw new AppValidationException("cricsheetId", "A Cricsheet id is 8 characters (0-9, a-f), e.g. ba607b88.");
+        if (value is not null && await db.Players.AnyAsync(p => p.CricsheetId == value && p.Id != id, ct))
+            throw new AppValidationException("cricsheetId", "Another player is already linked to this Cricsheet id.");
+        if (value != player.CricsheetId && player.CricsheetId is not null)
+        {
+            // Unlinking (or relinking) removes the match rows that came from the old link.
+            await db.PlayerMatchStatistics.Where(s => s.PlayerId == id && s.Match!.ExternalRef != null && s.Match.ExternalRef.StartsWith("cricsheet:")).ExecuteDeleteAsync(ct);
+            await db.PlayerSeasonStatistics.Where(s => s.PlayerId == id && s.DataSource.StartsWith("Cricsheet")).ExecuteDeleteAsync(ct);
+            await db.PlayerCareerStatistics.Where(s => s.PlayerId == id && s.DataSource.StartsWith("Cricsheet")).ExecuteDeleteAsync(ct);
+            await cache.BumpAsync("stats", ct);
+            Analytics.RatingService.Invalidate();
+        }
+        audit.Record("players.cricsheet-linked", "Player", id, new { from = player.CricsheetId, to = value });
+        player.CricsheetId = value;
+        await db.SaveChangesAsync(ct);
     }
 
     public async Task<Guid> CreateAsync(SavePlayerRequest req, CancellationToken ct)

@@ -169,6 +169,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentUser? 
             e.HasIndex(x => x.FullName);
             e.HasIndex(x => x.Status);
             e.HasIndex(x => x.CurrentFranchiseId);
+            e.Property(x => x.CricsheetId).HasMaxLength(16);
+            e.HasIndex(x => x.CricsheetId).IsUnique().HasFilter("[CricsheetId] IS NOT NULL");
             e.Property(x => x.FullName).HasMaxLength(150);
             e.Property(x => x.DisplayName).HasMaxLength(100);
             e.HasOne(x => x.PrimaryRole).WithMany().HasForeignKey(x => x.PrimaryRoleId);
@@ -178,7 +180,12 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentUser? 
         m.Entity<PlayerTeam>(e => e.HasIndex(x => new { x.PlayerId, x.SeasonId }));
         m.Entity<PlayerAvailability>(e => e.HasIndex(x => x.PlayerId).IsUnique());
         m.Entity<Competition>(e => e.HasIndex(x => x.Code).IsUnique());
-        m.Entity<Match>(e => e.HasIndex(x => new { x.CompetitionId, x.Year }));
+        m.Entity<Match>(e =>
+        {
+            e.HasIndex(x => new { x.CompetitionId, x.Year });
+            e.Property(x => x.ExternalRef).HasMaxLength(64);
+            e.HasIndex(x => x.ExternalRef).IsUnique().HasFilter("[ExternalRef] IS NOT NULL");
+        });
         m.Entity<PlayerMatchStatistic>(e =>
         {
             e.HasIndex(x => new { x.MatchId, x.PlayerId }).IsUnique();

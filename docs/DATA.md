@@ -5,7 +5,7 @@
 With `DemoData:Enabled=true` on an empty database:
 
 - **The 10 real franchises** (Chennai Super Kings, Mumbai Indians, Royal Challengers Bengaluru, Kolkata Knight Riders, Delhi Capitals, Rajasthan Royals, Punjab Kings, Sunrisers Hyderabad, Lucknow Super Giants, Gujarat Titans): names, codes, cities, home grounds, owners as publicly reported, team colours and IPL finals 2008–2025 (champion and runner-up only).
-- **243 real players in their IPL 2026 squads**, from the published post-auction lists (Outlook India, cross-checked with Wisden; see `backend/src/Ipl.Infrastructure/Persistence/RealSquads.cs`). Recorded: name, team, role group, country, overseas/capped status, keeper, and batting hand / bowling style where publicly known. **Not recorded** (shown as "—" / "Not recorded"): dates of birth, prices (except the few stated by the sources), statistics, injuries. Nothing about real players is invented.
+- **243 real players in their IPL 2026 squads**, from the published post-auction lists (Outlook India, cross-checked with Wisden; see `backend/src/Ipl.Infrastructure/Persistence/RealSquads.cs`). Recorded: name, team, role group, country, overseas/capped status, keeper, and batting hand / bowling style where publicly known. **Not recorded** (shown as "—" / "Not recorded"): dates of birth, prices (except the few stated by the sources), injuries. Nothing about real players is invented. Statistics come from Cricsheet (below).
 - The current season (2027) starts with these squads carried forward, because official 2027 retention lists were not published at the time of seeding. Update squads through the retention, trade and auction workflows (or import).
 - **Fictional "demo prospects"**: 48 invented players, clearly named "… (Demo)" and flagged `IsDemo`, with **synthetic** statistics (`DataSource` says so), used for the practice auction, scouting and the analytics screens.
 - Demo user accounts (fictional people) for every role; no demo trades, injuries or medical records are created for real players.
@@ -13,6 +13,23 @@ With `DemoData:Enabled=true` on an empty database:
 ### Images and logos
 
 No logos or photos are bundled: official league/franchise logos are trademarks and player photos are copyrighted. The app shows the franchise's short code on its team colour, and player initials. To show real images, save an **https URL to an image you have the rights to use** (your own photographer, an agency licence, the franchise's permission, or a Wikimedia Commons file used under its licence): player photos in *Player → Career & availability → Photo* (`players.manage`), franchise logos in *Franchise → Edit → Logo URL*. Broken links fall back to the badge.
+
+## Statistics from Cricsheet (ball-by-ball)
+
+[Cricsheet](https://cricsheet.org) publishes ball-by-ball records of every IPL match since 2008 and of international matches under the **Open Data Commons Attribution License (ODC-BY 1.0)**: free to use, including commercially, as long as Cricsheet is credited. Every statistic loaded from it carries the source "Cricsheet (cricsheet.org), ODC-BY 1.0", which the statistics screens show.
+
+**Running it:** *Player Statistics → Import / update from Cricsheet* (`stats.import`), or `POST /api/v1/statistics/cricsheet/import`; status at `GET /api/v1/statistics/cricsheet`. It also runs automatically every `Cricsheet:AutoImportDays` days. A run downloads `ipl_json.zip` and `t20s_male_json.zip` (about 20 MB; cached and only downloaded again when Cricsheet publishes a newer file), then:
+
+1. **Links squad players to Cricsheet people.** Cricsheet uses scorecard names ("V Kohli", "SA Yadav"), so a link needs the name to fit (surname plus initials, small spelling differences) **and** the person to have played for the player's current franchise in the last three IPL seasons (overseas players: for their country in T20Is). Exact full-name matches of recent players are also accepted, plus a short hand-checked list (`RealSquads.CricsheetIds`). Anything ambiguous is left unlinked. A link can be set or removed by hand on the player profile (*Career & availability → Cricsheet link*).
+2. **Loads every match with a linked player** into `ipl.Matches` / `ipl.PlayerMatchStatistics` (runs, balls, boundaries, dismissals, phases, wickets, economy, dots, maidens, catches, stumpings, run-outs). Re-runs only add what is new.
+3. **Recalculates** season and career totals, so ratings, valuations, comparisons, form and team strength use the real numbers.
+
+Known limits:
+- Players who have not played an IPL match or a T20I yet have no data (about 20 uncapped squad players); they're listed on the Player Statistics page.
+- Cricsheet's T20I archive is not complete (for example it currently has no Afghanistan T20Is, and a few India matches are missing), so T20I totals can be lower than official records. IPL coverage is complete.
+- Pace/spin splits and wickets against right/left-handers need the bowler's type or batter's hand, which Cricsheet does not record; they are counted only where the other player is in our database with that detail.
+- Home/away is worked out for IPL matches only (from the franchise's home cities).
+- Prices, dates of birth and photos are not in Cricsheet.
 
 ## Real data
 
