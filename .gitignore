@@ -1,0 +1,16 @@
+# .NET
+bin/
+obj/
+*.user
+*.suo
+.vs/
+TestResults/
+backend/src/Ipl.Api/wwwroot/
+# Node / Angular
+node_modules/
+frontend/dist/
+frontend/.angular/
+# Secrets & local
+.env
+*.log
+.DS_Store

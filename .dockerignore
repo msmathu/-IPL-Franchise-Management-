@@ -1,0 +1,8 @@
+**/bin
+**/obj
+**/node_modules
+frontend/dist
+frontend/.angular
+backend/src/Ipl.Api/wwwroot
+.git
+.env

@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Ipl.Api/Ipl.Api.csproj" />
+    <Project Path="src/Ipl.Application/Ipl.Application.csproj" />
+    <Project Path="src/Ipl.Domain/Ipl.Domain.csproj" />
+    <Project Path="src/Ipl.Infrastructure/Ipl.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Ipl.Tests/Ipl.Tests.csproj" />
+  </Folder>
+</Solution>

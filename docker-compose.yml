@@ -1,0 +1,50 @@
+# Local/full stack: SQL Server + Redis + the platform (API and web app on http://localhost:8080).
+# 1. Copy .env.example to .env and set strong values.   2. docker compose up --build
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: Developer
+      MSSQL_SA_PASSWORD: ${SQL_SA_PASSWORD:?Set SQL_SA_PASSWORD in .env}
+    ports:
+      - "14333:1433"
+    volumes:
+      - sqldata:/var/opt/mssql
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -C -Q 'SELECT 1' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      retries: 10
+
+  app:
+    build: .
+    depends_on:
+      sqlserver: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    ports:
+      - "8080:8080"
+    environment:
+      ConnectionStrings__Default: "Server=sqlserver,1433;Database=IplFranchise;User Id=sa;Password=${SQL_SA_PASSWORD};TrustServerCertificate=True;Encrypt=True"
+      Jwt__SigningKey: ${JWT_SIGNING_KEY:?Set JWT_SIGNING_KEY in .env (48+ random characters)}
+      Redis__Connection: "redis:6379"
+      DemoData__Enabled: ${DEMO_DATA:-true}
+      Auth__AppBaseUrl: ${APP_BASE_URL:-http://localhost:8080}
+      Cors__Origins__0: ${APP_BASE_URL:-http://localhost:8080}
+      Swagger__Enabled: ${SWAGGER:-true}
+      Email__SmtpHost: ${SMTP_HOST:-}
+      Email__SmtpPort: ${SMTP_PORT:-587}
+      Email__Username: ${SMTP_USER:-}
+      Email__Password: ${SMTP_PASSWORD:-}
+      Email__From: ${SMTP_FROM:-no-reply@franchise.local}
+
+volumes:
+  sqldata:
