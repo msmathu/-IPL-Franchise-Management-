@@ -1,4 +1,6 @@
 import { DatePipe } from '@angular/common';
+import { teamVars } from '../../core/team-theme';
+import { roleIcon } from '../../shared/player-card';
 import { Component, computed, inject, input, output, signal } from '@angular/core';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { rxResource } from '../../core/resource';
@@ -204,30 +206,42 @@ export class PlayerAnalysis {
 
 @Component({
   selector: 'app-player-profile',
-  imports: [PageHeader, StateView, StatCard, StatusChip, Monogram, PlayerAvatar, PlayerStats, PlayerAnalysis, InrPipe, WordsPipe, DatePipe, MatTabsModule,
+  imports: [StateView, StatusChip, Monogram, PlayerStats, PlayerAnalysis, InrPipe, WordsPipe, DatePipe, MatTabsModule,
     MatButtonModule, MatIconModule, MatFormFieldModule, MatSelectModule, MatInputModule, FormsModule],
   template: `
     <div class="page">
       <app-state [loading]="res.isLoading()" [error]="res.error()" (retry)="res.reload()">
         @if (res.value(); as p) {
-          <div class="row">
-            <app-avatar [name]="p.fullName" [photoUrl]="p.photoUrl" [color]="p.franchise?.primaryColor ?? '#334155'" [size]="64" />
-            <app-page-header [title]="p.fullName" [subtitle]="p.role + ' · ' + p.country + (p.age !== null ? ' · age ' + p.age : '') + (p.franchise ? ' · ' + p.franchise.name : ' · unsigned')" />
-            @if (p.franchise; as fr) { <app-monogram [name]="fr.name" [code]="fr.code" [logoUrl]="fr.logoUrl" [color]="fr.primaryColor" [size]="44" /> }
-            <span class="spacer"></span>
-            @if (p.isDemo) { <span class="tag">Fictional demo player</span> }
-            <app-chip [text]="p.status | words" /><app-chip [text]="p.availability.status" />
-          </div>
+          <section class="team-hero" [style]="heroVars()">
+            <div class="player-hero">
+              <div class="portrait">
+                @if (p.photoUrl && !photoFailed()) { <img [src]="p.photoUrl" [alt]="p.fullName" (error)="photoFailed.set(true)" /> }
+                @else { <span class="initials">{{ initials(p.fullName) }}</span> }
+              </div>
+              <div>
+                <div class="first">{{ nameParts(p.fullName).first }}</div>
+                <div class="last">{{ nameParts(p.fullName).last }}</div>
+                <div class="hero-facts">
+                  <div class="fact"><mat-icon>{{ roleIcon(p.roleCode, p.isWicketKeeper) }}</mat-icon><div><b>Role</b><span>{{ p.role }}{{ p.isWicketKeeper && p.roleCode !== 'wk_batter' ? ' · keeper' : '' }}</span></div></div>
+                  <div class="fact"><mat-icon>sports_cricket</mat-icon><div><b>Batting</b><span>{{ p.battingHand === 'LeftHand' ? 'Left-handed' : p.battingHand === 'RightHand' ? 'Right-handed' : 'Not recorded' }}</span></div></div>
+                  <div class="fact"><mat-icon>sports_baseball</mat-icon><div><b>Bowling</b><span>{{ p.bowlingStyle || (p.bowlingType === 'Unknown' ? 'Not recorded' : 'Does not bowl') }}</span></div></div>
+                  <div class="fact"><mat-icon>{{ p.isOverseas ? 'flight' : 'home' }}</mat-icon><div><b>Country</b><span>{{ p.country }} · {{ p.isCapped ? 'Capped' : 'Uncapped' }}</span></div></div>
+                  <div class="fact"><mat-icon>cake</mat-icon><div><b>Born</b><span>{{ p.dateOfBirth ? (p.dateOfBirth | date: 'd MMM yyyy') : 'Not recorded' }}</span></div></div>
+                  <div class="fact"><mat-icon>currency_rupee</mat-icon><div><b>Price</b><span>{{ p.currentPrice ? (p.currentPrice | inr) : 'Not recorded' }}</span></div></div>
+                </div>
+              </div>
+              <div class="side">
+                @if (p.franchise; as fr) {
+                  <span class="row"><app-monogram [name]="fr.name" [code]="fr.code" [logoUrl]="fr.logoUrl" [color]="fr.secondaryColor ?? fr.primaryColor" [size]="40" /><strong>{{ fr.name }}</strong></span>
+                } @else { <strong>Unsigned</strong> }
+                @if (p.isDemo) { <span class="chip">Fictional demo player</span> }
+                <span class="chip">{{ p.status | words }}</span><span class="chip">{{ p.availability.status }}</span>
+              </div>
+            </div>
+          </section>
           @if (p.photoCredit) {
-            <p class="small muted photo-credit">{{ p.photoCredit }}@if (p.photoSourceUrl) { · <a [href]="p.photoSourceUrl" target="_blank" rel="noopener">source &amp; licence</a> }</p>
+            <p class="small muted">{{ p.photoCredit }}@if (p.photoSourceUrl) { · <a [href]="p.photoSourceUrl" target="_blank" rel="noopener">source &amp; licence</a> }</p>
           }
-          <div class="grid stats">
-            <app-stat label="Batting" [value]="p.battingHand === 'LeftHand' ? 'Left-handed' : p.battingHand === 'RightHand' ? 'Right-handed' : 'Not recorded'" />
-            <app-stat label="Bowling" [value]="p.bowlingStyle || (p.bowlingType === 'Unknown' ? 'Not recorded' : 'Does not bowl')" />
-            <app-stat label="Category" [value]="(p.isOverseas ? 'Overseas' : 'Domestic') + ' · ' + (p.isCapped ? 'Capped' : 'Uncapped')" [hint]="p.isWicketKeeper ? 'Wicketkeeper' : ''" />
-            <app-stat label="Current price" [value]="p.currentPrice ? (p.currentPrice | inr) : 'Not recorded'" [hint]="p.franchise?.name ?? ''" />
-            <app-stat label="Born" [value]="p.dateOfBirth ? (p.dateOfBirth | date: 'd MMM yyyy') : 'Not recorded'" />
-          </div>
           <mat-tab-group>
             <mat-tab label="Statistics"><div class="stack tabpad"><app-player-stats [playerId]="p.id" /></div></mat-tab>
             <mat-tab label="Performance analysis"><div class="stack tabpad"><app-player-analysis [playerId]="p.id" [competitions]="competitions()" /></div></mat-tab>
@@ -306,6 +320,18 @@ export class PlayerAnalysis {
 })
 export class PlayerProfilePage {
   readonly id = input.required<string>();
+  readonly photoFailed = signal(false);
+  readonly roleIcon = roleIcon;
+  readonly heroVars = computed(() => teamVars(this.res.value()?.franchise?.primaryColor ?? '#334155', this.res.value()?.franchise?.secondaryColor ?? '#1e293b'));
+
+  initials(name: string): string {
+    return name.replace(/\(.*\)/, '').split(/\s+/).filter(Boolean).map((w) => w[0]).slice(0, 2).join('').toUpperCase();
+  }
+
+  nameParts(name: string): { first: string; last: string } {
+    const words = name.trim().split(/\s+/);
+    return words.length < 2 ? { first: '', last: name } : { first: words.slice(0, -1).join(' '), last: words[words.length - 1] };
+  }
   readonly auth = inject(Auth);
   readonly P = P;
   private readonly api = inject(Api);

@@ -65,6 +65,7 @@ public static class DependencyInjection
         services.AddScoped<FranchiseService>();
         services.AddScoped<PlayerService>();
         services.AddScoped<StatisticsService>();
+        services.AddScoped<SeasonCentreService>();
         services.AddScoped<RatingService>();
         services.AddScoped<ValuationService>();
         services.AddScoped<ComparisonService>();

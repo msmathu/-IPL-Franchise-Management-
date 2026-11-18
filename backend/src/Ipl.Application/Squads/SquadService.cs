@@ -7,11 +7,13 @@ namespace Ipl.Application.Squads;
 
 public record SquadPlayerDto(
     Guid PlayerId, string Name, string Role, string RoleCode, bool IsWicketKeeper, bool IsOverseas, bool IsCapped, bool CanBowl,
-    int? Age, decimal? Price, string Acquisition, string Availability, decimal? Rating, string FormTrend, string? PhotoUrl);
+    int? Age, decimal? Price, string Acquisition, string Availability, decimal? Rating, string FormTrend, string? PhotoUrl,
+    bool IsCaptain = false, int Matches = 0, int Runs = 0, int Wickets = 0);
 
 public record SquadDto(
     Guid FranchiseId, string FranchiseName, int SeasonId, string Season, CompositionDto Composition, TeamStrengthDto Strength,
-    decimal PurseRemaining, decimal SquadValue, IReadOnlyList<SquadPlayerDto> Players, IReadOnlyList<SquadHistoryDto> Departed);
+    decimal PurseRemaining, decimal SquadValue, IReadOnlyList<SquadPlayerDto> Players, IReadOnlyList<SquadHistoryDto> Departed,
+    string Code = "", string PrimaryColor = "", string SecondaryColor = "");
 
 public record SquadHistoryDto(Guid PlayerId, string Name, string Status, DateTime? LeftAt);
 
@@ -28,7 +30,7 @@ public record PlayingXIDto(
 
 public record XIValidationDto(IReadOnlyList<string> Errors, IReadOnlyList<string> Warnings, int Overseas, int BowlingOptions, decimal Strength);
 
-public class SquadService(IAppDbContext db, ICurrentUser me, IClock clock, IRulesService rules, RatingService ratings, IAuditService audit)
+public class SquadService(IAppDbContext db, ICurrentUser me, IClock clock, IRulesService rules, RatingService ratings, IAuditService audit, Players.PlayerService players)
 {
     public async Task<SquadDto> GetAsync(Guid franchiseId, CancellationToken ct)
     {
@@ -46,6 +48,12 @@ public class SquadService(IAppDbContext db, ICurrentUser me, IClock clock, IRule
             .OrderByDescending(s => s.LeftAt)
             .Select(s => new SquadHistoryDto(s.PlayerId, s.Player!.FullName, s.Status.ToString(), s.LeftAt)).ToListAsync(ct);
         var confidential = me.CanAccessFranchise(franchiseId);
+        var captains = (await db.FranchiseStaff.AsNoTracking().Where(s => s.FranchiseId == franchiseId && s.Position.StartsWith("Captain"))
+            .Select(s => s.Name).ToListAsync(ct)).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var t20 = await players.PrimaryT20CompetitionIdAsync(ct);
+        var ids = squad.Select(m => m.PlayerId).ToList();
+        var careers = await db.PlayerCareerStatistics.AsNoTracking().Where(c => c.CompetitionId == t20 && ids.Contains(c.PlayerId))
+            .Select(c => new { c.PlayerId, c.Matches, c.Runs, c.Wickets }).ToDictionaryAsync(c => c.PlayerId, ct);
         return new SquadDto(franchiseId, franchise.Name, season.Id, season.Name, SquadMath.Compose(squad, seasonRules), strength,
             confidential ? purse : 0, squad.Sum(m => m.Price),
             squad.OrderBy(m => m.RoleCode).ThenByDescending(m => rated.GetValueOrDefault(m.PlayerId)?.Rating)
@@ -59,9 +67,11 @@ public class SquadService(IAppDbContext db, ICurrentUser me, IClock clock, IRule
                         : form.Score > career.Score + 8 ? "Rising"
                         : form.Score < career.Score - 8 ? "Falling" : "Steady";
                     return new SquadPlayerDto(m.PlayerId, m.Name, m.RoleName, m.RoleCode, m.IsWicketKeeper, m.IsOverseas, m.IsCapped, m.CanBowl, m.Age,
-                        m.Price > 0 ? m.Price : null, m.Acquisition, m.Availability, r is null || r.Confidence == "None" ? null : r.Rating, trend, m.PhotoUrl);
+                        m.Price > 0 ? m.Price : null, m.Acquisition, m.Availability, r is null || r.Confidence == "None" ? null : r.Rating, trend, m.PhotoUrl,
+                        captains.Contains(m.Name), careers.GetValueOrDefault(m.PlayerId)?.Matches ?? 0, careers.GetValueOrDefault(m.PlayerId)?.Runs ?? 0,
+                        careers.GetValueOrDefault(m.PlayerId)?.Wickets ?? 0);
                 }).ToList(),
-            departed);
+            departed, franchise.Code, franchise.PrimaryColor, franchise.SecondaryColor);
     }
 
     // ---------------- Playing XI ----------------

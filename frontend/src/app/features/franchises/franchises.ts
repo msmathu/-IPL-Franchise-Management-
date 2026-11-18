@@ -1,4 +1,5 @@
 import { DatePipe, DecimalPipe } from '@angular/common';
+import { teamVars } from '../../core/team-theme';
 import { Component, computed, inject, input, signal } from '@angular/core';
 import { rxResource } from '../../core/resource';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -38,11 +39,11 @@ import { ChartView, Monogram, PALETTE, PageHeader, StatCard, StateView, StatusCh
       <app-state [loading]="res.isLoading()" [error]="res.error()" [empty]="!res.value()?.length" (retry)="res.reload()">
         <div class="grid cols-3">
           @for (f of res.value(); track f.id) {
-            <a class="card fr" [routerLink]="['/franchises', f.id]" [style.border-top-color]="f.primaryColor">
-              <div class="row"><app-monogram [name]="f.name" [code]="f.code" [logoUrl]="f.logoUrl" [color]="f.primaryColor" [size]="48" />
-                <div><h2>{{ f.name }}</h2><span class="muted">{{ f.city }} · {{ f.homeGround }}</span></div></div>
+            <a class="card fr" [routerLink]="['/franchises', f.id]" [style]="vars(f)">
+              <div class="fr-band"><app-monogram [name]="f.name" [code]="f.code" [logoUrl]="f.logoUrl" [color]="f.secondaryColor" [size]="52" />
+                <div><h2>{{ f.name }}</h2><span class="small">{{ f.city }} · {{ f.homeGround }}</span></div></div>
               <div class="row small">
-                <span>🏆 {{ f.titles }} title{{ f.titles === 1 ? '' : 's' }}</span><span>{{ f.squadSize }} players</span>
+                <span class="ico"><mat-icon>emoji_events</mat-icon>{{ f.titles }} title{{ f.titles === 1 ? '' : 's' }}</span><span class="ico"><mat-icon>groups</mat-icon>{{ f.squadSize }} players</span>
                 @if (f.purseRemaining !== null) { <span>Purse {{ f.purseRemaining | inr }}</span> }
                 @if (!f.isActive) { <span class="bad-text">Inactive</span> }
                 @if (f.isDemo) { <span class="tag">Demo</span> }
@@ -53,9 +54,14 @@ import { ChartView, Monogram, PALETTE, PageHeader, StatCard, StateView, StatusCh
       </app-state>
     </div>
   `,
-  styles: `.fr { display: flex; flex-direction: column; gap: 12px; border-top: 4px solid; color: var(--text); text-decoration: none !important; } .fr:hover { background: var(--card-2); } .fr h2 { margin: 0; }`,
+  styles: `.fr { display: flex; flex-direction: column; gap: 12px; padding: 0 0 14px; overflow: hidden; color: var(--text); text-decoration: none !important; transition: transform 0.15s; }
+    .fr:hover { transform: translateY(-3px); box-shadow: 0 0 0 2px var(--team-line); } .fr h2 { margin: 0; font-size: 18px; font-weight: 800; }
+    .fr > .row { padding: 0 16px; } .ico { display: inline-flex; gap: 4px; align-items: center; } .ico mat-icon { font-size: 18px; width: 18px; height: 18px; color: var(--team-accent); }
+    .fr-band { display: flex; gap: 14px; align-items: center; padding: 18px 16px; color: var(--team-ink);
+      background: radial-gradient(rgba(255,255,255,0.16) 1px, transparent 1.4px) 0 0 / 7px 7px, linear-gradient(115deg, var(--team) 0%, var(--team) 60%, var(--team-2) 140%); }`,
 })
 export class FranchisesPage {
+  readonly vars = (f: any) => teamVars(f.primaryColor, f.secondaryColor);
   readonly auth = inject(Auth);
   readonly P = P;
   private readonly api = inject(Api);
@@ -161,7 +167,8 @@ function franchiseForm(fb: FormBuilder) {
               </div>
             </mat-tab>
             <mat-tab label="Squad">
-              <div class="tabpad"><a mat-stroked-button [routerLink]="['/players']" [queryParams]="{ franchiseId: f.id }">Open squad in the player database</a></div>
+              <div class="tabpad row"><a mat-flat-button [routerLink]="['/squad']" [queryParams]="{ franchise: f.id }"><mat-icon>grid_view</mat-icon>View squad cards</a>
+                <a mat-stroked-button [routerLink]="['/players']" [queryParams]="{ franchiseId: f.id }">Open squad in the player database</a></div>
             </mat-tab>
             @if (auth.has(P.auditRead) && f.canViewConfidential) {
               <mat-tab label="Activity">

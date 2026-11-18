@@ -13,7 +13,7 @@ public interface ITokenService
     AccessToken CreateAccessToken(User user, Guid? franchiseId, IReadOnlyCollection<string> permissions, bool leagueWide);
 }
 
-public record UserFranchiseDto(Guid Id, string Name, string ShortName, string Code, string PrimaryColor, IReadOnlyList<string> Roles);
+public record UserFranchiseDto(Guid Id, string Name, string ShortName, string Code, string PrimaryColor, IReadOnlyList<string> Roles, string SecondaryColor);
 
 public record MeDto(
     Guid Id, string Email, string FullName, Guid? ActiveFranchiseId, bool IsLeagueWide,
@@ -274,7 +274,7 @@ public class AuthService(
             .Distinct().OrderBy(p => p).ToList();
 
         var franchiseDtos = franchises.Select(f => new UserFranchiseDto(f.Id, f.Name, f.ShortName, f.Code, f.PrimaryColor,
-            roles.Where(r => r.FranchiseId == f.Id).Select(r => r.Name).ToList())).ToList();
+            roles.Where(r => r.FranchiseId == f.Id).Select(r => r.Name).ToList(), f.SecondaryColor)).ToList();
         return new Access(new MeDto(user.Id, user.Email, user.FullName, active, isLeagueWide,
             leagueRoles.Select(r => r.Name).ToList(), franchiseDtos, permissions));
     }

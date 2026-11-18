@@ -27,6 +27,26 @@ public class Match : Entity
     public string Team2 { get; set; } = "";
     public string? Result { get; set; }
     public string DataSource { get; set; } = "";
+    public string? City { get; set; }
+    /// <summary>Match number within the season (league stage), when published.</summary>
+    public int? MatchNumber { get; set; }
+    /// <summary>Play-off stage ("Qualifier 1", "Eliminator", "Final"...); null for league matches.</summary>
+    public string? Stage { get; set; }
+    /// <summary>Winning team name (including super-over winners); null for no result.</summary>
+    public string? Winner { get; set; }
+    public bool NoResult { get; set; }
+    /// <summary>Scheduled overs per innings (20 for T20).</summary>
+    public int? OversLimit { get; set; }
+    public int? Team1Runs { get; set; }
+    public int? Team1Wickets { get; set; }
+    /// <summary>Legal balls faced in the innings.</summary>
+    public int? Team1Balls { get; set; }
+    public int? Team2Runs { get; set; }
+    public int? Team2Wickets { get; set; }
+    public int? Team2Balls { get; set; }
+    /// <summary>Overs available to the side batting second after a rain reduction (DLS), when published.</summary>
+    public int? Team2OversLimit { get; set; }
+    public bool Team1BattedFirst { get; set; } = true;
     /// <summary>Provider reference, e.g. "cricsheet:1473512"; unique when set.</summary>
     public string? ExternalRef { get; set; }
     public bool IsDemo { get; set; }

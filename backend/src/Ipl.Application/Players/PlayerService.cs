@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Ipl.Application.Players;
 
-public record PlayerFranchiseDto(Guid Id, string Name, string ShortName, string PrimaryColor, string Code, string? LogoUrl);
+public record PlayerFranchiseDto(Guid Id, string Name, string ShortName, string PrimaryColor, string Code, string? LogoUrl, string? SecondaryColor = null);
 
 public record PlayerListItemDto(
     Guid Id, string Code, string FullName, string DisplayName, int? Age, string Country, string CountryCode, bool IsOverseas,
@@ -157,7 +157,7 @@ public class PlayerService(IAppDbContext db, ICurrentUser me, IAuditService audi
         return new PlayerDetailDto(p.Id, p.Code, p.FullName, p.DisplayName, p.DateOfBirth, AgeOn(p.DateOfBirth, clock.Today), p.CountryId,
             p.Country!.Name, p.Country.Code, p.PhotoUrl, p.BattingHand.ToString(), p.BowlingStyle, p.BowlingType.ToString(), p.PrimaryRoleId,
             p.PrimaryRole!.Name, p.PrimaryRole.Code, p.SecondaryRoleId, p.SecondaryRole?.Name, p.IsWicketKeeper, p.IsOverseas, p.IsCapped,
-            p.CurrentFranchise is null ? null : new PlayerFranchiseDto(p.CurrentFranchise.Id, p.CurrentFranchise.Name, p.CurrentFranchise.ShortName, p.CurrentFranchise.PrimaryColor, p.CurrentFranchise.Code, p.CurrentFranchise.LogoUrl),
+            p.CurrentFranchise is null ? null : new PlayerFranchiseDto(p.CurrentFranchise.Id, p.CurrentFranchise.Name, p.CurrentFranchise.ShortName, p.CurrentFranchise.PrimaryColor, p.CurrentFranchise.Code, p.CurrentFranchise.LogoUrl, p.CurrentFranchise.SecondaryColor),
             p.Status.ToString(), p.CareerStatus.ToString(),
             avail is null ? new AvailabilityDto(nameof(AvailabilityStatus.Available), null, null, p.CreatedAt)
                 : new AvailabilityDto(avail.Status.ToString(), avail.PublicNote, avail.ExpectedReturn, avail.UpdatedAt),

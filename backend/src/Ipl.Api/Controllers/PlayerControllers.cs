@@ -150,6 +150,20 @@ public class StatisticsController(StatisticsService stats, CricsheetImportRunner
 
 public record CricsheetLinkRequest(string? CricsheetId);
 
+/// <summary>Results and points tables calculated from imported match data.</summary>
+[Route("api/v{version:apiVersion}/season-centre")]
+public class SeasonCentreController(SeasonCentreService season) : ApiControllerBase
+{
+    [HttpGet("years"), HasPermission(Perm.StatsRead)]
+    public Task<SeasonCentreYearsDto> Years(CancellationToken ct) => season.YearsAsync(ct);
+
+    [HttpGet("{year:int}/fixtures"), HasPermission(Perm.StatsRead)]
+    public Task<IReadOnlyList<FixtureDto>> Fixtures(int year, [FromQuery] string? team, CancellationToken ct) => season.FixturesAsync(year, team, ct);
+
+    [HttpGet("{year:int}/standings"), HasPermission(Perm.StatsRead)]
+    public Task<IReadOnlyList<StandingDto>> Standings(int year, CancellationToken ct) => season.StandingsAsync(year, ct);
+}
+
 public record CompareRequest(IReadOnlyList<Guid> PlayerIds);
 
 [Route("api/v{version:apiVersion}/comparisons")]

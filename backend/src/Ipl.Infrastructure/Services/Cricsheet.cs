@@ -40,13 +40,7 @@ public static class Cricsheet
     };
 
     /// <summary>Historical and current IPL team names → current franchise code.</summary>
-    public static readonly IReadOnlyDictionary<string, string> FranchiseByTeamName = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-    {
-        ["Chennai Super Kings"] = "CSK", ["Mumbai Indians"] = "MI", ["Royal Challengers Bangalore"] = "RCB",
-        ["Royal Challengers Bengaluru"] = "RCB", ["Kolkata Knight Riders"] = "KKR", ["Delhi Daredevils"] = "DC",
-        ["Delhi Capitals"] = "DC", ["Rajasthan Royals"] = "RR", ["Kings XI Punjab"] = "PBKS", ["Punjab Kings"] = "PBKS",
-        ["Sunrisers Hyderabad"] = "SRH", ["Lucknow Super Giants"] = "LSG", ["Gujarat Titans"] = "GT",
-    };
+    public static IReadOnlyDictionary<string, string> FranchiseByTeamName => TeamNames.FranchiseCodeByName;
 
     /// <summary>Home cities per franchise (used for the home/away split of IPL matches).</summary>
     public static readonly IReadOnlyDictionary<string, string[]> HomeCities = new Dictionary<string, string[]>
@@ -160,9 +154,14 @@ public static class CricsheetNameMatcher
 /// <summary>What the importer knows about a linked player (for pace/spin and batting-hand splits).</summary>
 public sealed record LinkedPlayer(Guid PlayerId, BattingHand Hand, BowlingType Bowling);
 
+public sealed record InningsTotal(string Team, int Runs, int Wickets, int Balls);
+
+public sealed record MatchSummary(int? MatchNumber, string? Stage, string? Winner, bool NoResult, int? OversLimit, int? TargetOvers,
+    IReadOnlyList<InningsTotal> Innings);
+
 public sealed record ParsedMatch(
     string FileId, DateOnly Date, string Team1, string Team2, string Venue, string? City, string? Result,
-    IReadOnlyDictionary<string, PlayerMatchStatistic> Performances);
+    IReadOnlyDictionary<string, PlayerMatchStatistic> Performances, MatchSummary Summary);
 
 /// <summary>Turns one Cricsheet JSON match into per-player match statistics (keyed by Cricsheet id).</summary>
 public static class CricsheetMatchParser
@@ -201,6 +200,8 @@ public static class CricsheetMatchParser
                     teamOf[Id(n.GetString()!)] = team.Name;
 
         var perf = new Dictionary<string, PlayerMatchStatistic>();
+        var totals = new List<InningsTotal>();
+        int? targetOvers = null;
         PlayerMatchStatistic P(string id, string team)
         {
             if (!perf.TryGetValue(id, out var s))
@@ -221,6 +222,9 @@ public static class CricsheetMatchParser
                 var battingTeam = inn.GetProperty("team").GetString()!;
                 var fieldingTeam = Other(battingTeam);
                 var order = new List<string>();
+                int innRuns = 0, innWickets = 0, innBalls = 0;
+                if (inn.TryGetProperty("target", out var target) && target.TryGetProperty("overs", out var to) && to.ValueKind == JsonValueKind.Number)
+                    targetOvers = (int)Math.Ceiling(to.GetDouble());
                 void Arrive(string id) { if (!order.Contains(id)) order.Add(id); }
 
                 foreach (var over in overs.EnumerateArray())
@@ -243,6 +247,8 @@ public static class CricsheetMatchParser
                             if (ex.TryGetProperty("noballs", out var nb)) noballs = nb.GetInt32();
                         }
                         var legal = wides == 0 && noballs == 0;
+                        innRuns += runs.GetProperty("total").GetInt32();
+                        if (legal) innBalls++;
                         var boundary = !(d.TryGetProperty("non_boundary", out var nbd) && nbd.ValueKind == JsonValueKind.True);
                         var type = TypeOf(bowler);
                         var pace = type is BowlingType.Fast or BowlingType.MediumFast or BowlingType.Medium;
@@ -285,6 +291,7 @@ public static class CricsheetMatchParser
                         {
                             var kind = wk.GetProperty("kind").GetString() ?? "";
                             var creditBowler = !NotBowlerWickets.Contains(kind);
+                            if (!NotDismissals.Contains(kind)) innWickets++;
                             if (wk.TryGetProperty("player_out", out var po) && po.GetString() is { } outName)
                             {
                                 var outId = Id(outName);
@@ -332,6 +339,7 @@ public static class CricsheetMatchParser
                         if (legalBalls >= 6 && conceded == 0) perf[id].Maidens++;
                     }
                 }
+                totals.Add(new InningsTotal(battingTeam, innRuns, innWickets, innBalls));
                 for (var i = 0; i < order.Count; i++)
                 {
                     var s = P(order[i], battingTeam);
@@ -353,7 +361,47 @@ public static class CricsheetMatchParser
             s.IsHome = homeAwayForIpl && Cricsheet.FranchiseByTeamName.TryGetValue(s.Team, out var code)
                 && Cricsheet.HomeCities[code].Any(h => (city ?? "").Contains(h, StringComparison.OrdinalIgnoreCase) || venue.Contains(h, StringComparison.OrdinalIgnoreCase));
         }
-        return new ParsedMatch(fileId, FirstDate(info), teams.ElementAtOrDefault(0) ?? "", teams.ElementAtOrDefault(1) ?? "", venue, city, ResultText(info), perf);
+        return new ParsedMatch(fileId, FirstDate(info), teams.ElementAtOrDefault(0) ?? "", teams.ElementAtOrDefault(1) ?? "", venue, city, ResultText(info), perf,
+            Summary(info, totals, targetOvers));
+    }
+
+    private static MatchSummary Summary(JsonElement info, List<InningsTotal> totals, int? targetOvers)
+    {
+        int? number = null;
+        string? stage = null;
+        if (info.TryGetProperty("event", out var ev))
+        {
+            if (ev.TryGetProperty("match_number", out var n) && n.ValueKind == JsonValueKind.Number) number = n.GetInt32();
+            if (ev.TryGetProperty("stage", out var st)) stage = st.GetString();
+        }
+        string? winner = null;
+        var noResult = false;
+        if (info.TryGetProperty("outcome", out var o))
+        {
+            if (o.TryGetProperty("winner", out var w)) winner = w.GetString();
+            else if (o.TryGetProperty("eliminator", out var e)) winner = e.GetString();
+            else if (o.TryGetProperty("result", out var r) && r.GetString() is "no result") noResult = true;
+        }
+        int? overs = info.TryGetProperty("overs", out var ov) && ov.ValueKind == JsonValueKind.Number ? ov.GetInt32() : null;
+        return new MatchSummary(number, stage, winner, noResult, overs, targetOvers, totals);
+    }
+
+    /// <summary>Copies scores and outcome onto the match row (first innings of each team; super overs excluded).</summary>
+    public static void ApplySummary(Match m, ParsedMatch parsed)
+    {
+        var s = parsed.Summary;
+        m.City = parsed.City is null ? null : parsed.City.Length <= 100 ? parsed.City : parsed.City[..100];
+        m.MatchNumber = s.MatchNumber;
+        m.Stage = s.Stage is { Length: > 50 } st ? st[..50] : s.Stage;
+        m.Winner = s.Winner is { Length: > 100 } w ? w[..100] : s.Winner;
+        m.NoResult = s.NoResult;
+        m.OversLimit = s.OversLimit;
+        var t1 = s.Innings.FirstOrDefault(i => i.Team == parsed.Team1);
+        var t2 = s.Innings.FirstOrDefault(i => i.Team == parsed.Team2);
+        m.Team1Runs = t1?.Runs; m.Team1Wickets = t1?.Wickets; m.Team1Balls = t1?.Balls;
+        m.Team2Runs = t2?.Runs; m.Team2Wickets = t2?.Wickets; m.Team2Balls = t2?.Balls;
+        m.Team1BattedFirst = s.Innings.Count == 0 || s.Innings[0].Team == parsed.Team1;
+        m.Team2OversLimit = s.TargetOvers;
     }
 
     private static string? ResultText(JsonElement info)
@@ -472,6 +520,11 @@ public class CricsheetImporter(AppDbContext db, StatisticsService stats, IAuditS
         // 2) Load matches that involve linked players (new matches, and new players in already-loaded matches).
         var existing = await db.Matches.Where(m => m.ExternalRef != null && m.ExternalRef.StartsWith(Cricsheet.RefPrefix))
             .Select(m => new { m.ExternalRef, m.Id }).ToDictionaryAsync(m => m.ExternalRef!, m => m.Id, ct);
+        // Rows loaded before scores were imported: fill them in on this run.
+        var needScores = await db.Matches.Where(m => m.ExternalRef != null && m.ExternalRef.StartsWith(Cricsheet.RefPrefix)
+                && m.Team1Runs == null && !m.NoResult && m.Winner == null)
+            .ToDictionaryAsync(m => m.ExternalRef!, ct);
+        var scoresFilled = 0;
         var existingPairs = (await db.PlayerMatchStatistics.Where(s => s.Match!.ExternalRef != null && s.Match.ExternalRef.StartsWith(Cricsheet.RefPrefix))
             .Select(s => new { s.MatchId, s.PlayerId }).ToListAsync(ct)).Select(x => (x.MatchId, x.PlayerId)).ToHashSet();
         var competitions = await db.Competitions.ToDictionaryAsync(c => c.Code, c => c.Id, ct);
@@ -496,12 +549,19 @@ public class CricsheetImporter(AppDbContext db, StatisticsService stats, IAuditS
                     if (!CricsheetMatchParser.IsMaleMatch(info)) continue;
                     read++;
                     var reg = CricsheetMatchParser.Registry(info);
-                    if (!reg.Values.Any(byCsId.ContainsKey)) continue;
+                    var keepAll = ds == "ipl"; // every IPL match: fixtures and points tables need them all
+                    if (!keepAll && !reg.Values.Any(byCsId.ContainsKey)) continue;
                     var reference = Cricsheet.RefPrefix + fileId;
                     var known = existing.TryGetValue(reference, out var matchId);
-                    if (known && reg.Values.Where(byCsId.ContainsKey).All(id => existingPairs.Contains((matchId, byCsId[id].PlayerId)))) continue;
+                    var backfill = needScores.TryGetValue(reference, out var oldRow);
+                    if (known && !backfill && reg.Values.Where(byCsId.ContainsKey).All(id => existingPairs.Contains((matchId, byCsId[id].PlayerId)))) continue;
 
                     var parsed = CricsheetMatchParser.Parse(fileId, root, Lookup, ds == "ipl");
+                    if (backfill)
+                    {
+                        CricsheetMatchParser.ApplySummary(oldRow!, parsed);
+                        scoresFilled++;
+                    }
                     if (!known)
                     {
                         var match = new Match
@@ -510,6 +570,7 @@ public class CricsheetImporter(AppDbContext db, StatisticsService stats, IAuditS
                             Team1 = Cut(parsed.Team1, 100), Team2 = Cut(parsed.Team2, 100), Result = parsed.Result is null ? null : Cut(parsed.Result, 200),
                             DataSource = Cricsheet.Source, ExternalRef = reference,
                         };
+                        CricsheetMatchParser.ApplySummary(match, parsed);
                         newMatches.Add(match);
                         matchId = match.Id;
                         existing[reference] = matchId;
@@ -529,6 +590,7 @@ public class CricsheetImporter(AppDbContext db, StatisticsService stats, IAuditS
         }
 
         stage("Saving");
+        if (scoresFilled > 0) await db.SaveChangesAsync(ct);
         var strategy = db.Database.CreateExecutionStrategy();
         await strategy.ExecuteAsync(async () =>
         {

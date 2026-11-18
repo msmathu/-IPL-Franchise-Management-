@@ -116,3 +116,67 @@ img.monogram.logo { object-fit: contain; background: #fff; padding: 2px; }
 .player-cell { display: inline-flex; align-items: center; gap: 10px; }
 
 .photo-credit { margin: 4px 0 4px 80px; }
+
+/* ---------- Team theme: hero headers and player cards ---------- */
+.team-hero { position: relative; overflow: hidden; border-radius: var(--radius); color: var(--team-ink); padding: 26px 28px;
+  background: radial-gradient(rgba(255, 255, 255, 0.18) 1.1px, transparent 1.5px) 0 0 / 8px 8px,
+    linear-gradient(115deg, var(--team) 0%, var(--team) 58%, var(--team-2) 140%);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35); }
+.team-hero::after { content: ''; position: absolute; right: -60px; top: -60px; width: 260px; height: 260px; border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08); pointer-events: none; }
+.team-hero .muted, .team-hero .small { color: inherit; opacity: 0.85; }
+.team-hero h1 { font-size: 34px; font-weight: 800; letter-spacing: 0.01em; text-transform: uppercase; }
+.team-hero .eyebrow { font-size: 13px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; opacity: 0.85; }
+.team-hero .hero-facts { display: flex; flex-wrap: wrap; gap: 10px 26px; margin-top: 14px; }
+.team-hero .fact { display: flex; gap: 8px; align-items: center; }
+.team-hero .fact mat-icon { opacity: 0.9; }
+.team-hero .fact b { display: block; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; opacity: 0.8; font-weight: 700; }
+.team-hero .fact span { font-weight: 700; font-size: 15px; }
+.team-hero .chip { background: rgba(0, 0, 0, 0.22); color: inherit; }
+
+.section-title { display: flex; align-items: center; gap: 10px; margin-top: 8px; font-size: 22px; font-weight: 800; letter-spacing: 0.04em;
+  text-transform: uppercase; color: var(--team-accent); }
+.section-title mat-icon { font-size: 28px; width: 28px; height: 28px; }
+.section-title .count { font-size: 13px; color: var(--muted); font-weight: 600; letter-spacing: 0; }
+
+.pcards { display: grid; gap: 18px; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); }
+.pcard { position: relative; display: flex; flex-direction: column; border-radius: 14px; overflow: hidden; text-decoration: none !important;
+  background: linear-gradient(180deg, #e9edf3 0%, #cfd6e0 100%); border: 1px solid var(--line); transition: transform 0.15s ease, box-shadow 0.15s ease; }
+.pcard:hover { transform: translateY(-4px); box-shadow: 0 14px 30px rgba(0, 0, 0, 0.45), 0 0 0 2px var(--team-line); }
+.pcard-photo { position: relative; aspect-ratio: 4 / 4.2; overflow: hidden;
+  background: radial-gradient(rgba(0, 0, 0, 0.07) 1.2px, transparent 1.6px) 0 0 / 10px 10px, linear-gradient(180deg, #f4f6f9, #d5dce6); }
+.pcard-photo img { width: 100%; height: 100%; object-fit: cover; object-position: center 20%; display: block; }
+.pcard-photo .initials { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 64px; font-weight: 800;
+  color: var(--team-ink); background: radial-gradient(rgba(255, 255, 255, 0.16) 1.2px, transparent 1.6px) 0 0 / 9px 9px,
+  linear-gradient(150deg, var(--team), var(--team-2)); letter-spacing: 0.02em; }
+.pcard-badges { position: absolute; top: 8px; left: 8px; right: 8px; display: flex; gap: 6px; align-items: center; z-index: 1; }
+.pcard-badges .b { display: inline-flex; align-items: center; justify-content: center; min-width: 28px; height: 28px; padding: 0 6px; border-radius: 999px;
+  background: rgba(10, 15, 25, 0.78); color: #fff; font-size: 12px; font-weight: 800; }
+.pcard-badges .b mat-icon { font-size: 17px; width: 17px; height: 17px; }
+.pcard-badges .b.cap { background: var(--team); color: var(--team-ink); box-shadow: 0 0 0 2px var(--team-2); }
+.pcard-badges .b.warn { background: #b45309; }
+.pcard-band { padding: 10px 12px 12px; color: var(--team-ink);
+  background: linear-gradient(180deg, var(--team) 0%, color-mix(in srgb, var(--team) 70%, var(--team-2)) 100%); }
+.pcard-band .name { font-size: 17px; font-weight: 800; line-height: 1.15; }
+.pcard-band .meta { display: flex; justify-content: space-between; align-items: center; margin-top: 4px; font-size: 12px; font-weight: 600; opacity: 0.92; gap: 6px; }
+.pcard-band .meta mat-icon { font-size: 16px; width: 16px; height: 16px; vertical-align: -3px; }
+.pcard-band .nums { display: flex; gap: 12px; margin-top: 8px; padding-top: 8px; border-top: 1px solid color-mix(in srgb, var(--team-ink) 25%, transparent); font-size: 12px; }
+.pcard-band .nums b { display: block; font-size: 15px; font-weight: 800; }
+.pcard-band .view { font-weight: 800; letter-spacing: 0.04em; font-size: 11px; text-transform: uppercase; }
+
+.player-hero { display: grid; grid-template-columns: auto 1fr auto; gap: 28px; align-items: center; }
+.player-hero .portrait { width: 190px; height: 210px; border-radius: 16px; overflow: hidden; background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.35); border: 3px solid rgba(255, 255, 255, 0.7); }
+.player-hero .portrait img { width: 100%; height: 100%; object-fit: cover; object-position: center 20%; }
+.player-hero .portrait .initials { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 72px; font-weight: 800;
+  background: linear-gradient(150deg, var(--team-2), var(--team)); color: var(--team-ink); }
+.player-hero .first { font-size: 22px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; opacity: 0.9; }
+.player-hero .last { font-size: 46px; font-weight: 900; text-transform: uppercase; line-height: 1; letter-spacing: 0.01em; }
+.player-hero .side { display: flex; flex-direction: column; gap: 8px; align-items: flex-end; align-self: start; }
+@media (max-width: 800px) { .player-hero { grid-template-columns: 1fr; } .player-hero .side { align-items: flex-start; } .player-hero .last { font-size: 34px; } }
+
+.role-ico { font-size: 16px; width: 16px; height: 16px; vertical-align: -3px; margin-right: 4px; color: var(--team-accent); }
+
+/* Top bar text follows the team colour (readable on yellow, red, blue...). */
+.topbar .mat-mdc-button, .topbar .mat-mdc-icon-button, .topbar .mat-mdc-button .mat-icon { color: var(--team-ink) !important; }
+[data-team='off'] .topbar .mat-mdc-button, [data-team='off'] .topbar .mat-mdc-icon-button, [data-team='off'] .topbar .mat-mdc-button .mat-icon { color: var(--text) !important; }

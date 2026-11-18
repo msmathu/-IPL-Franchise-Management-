@@ -186,6 +186,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentUser? 
         {
             e.HasIndex(x => new { x.CompetitionId, x.Year });
             e.Property(x => x.ExternalRef).HasMaxLength(64);
+            e.Property(x => x.City).HasMaxLength(100);
+            e.Property(x => x.Stage).HasMaxLength(50);
+            e.Property(x => x.Winner).HasMaxLength(100);
             e.HasIndex(x => x.ExternalRef).IsUnique().HasFilter("[ExternalRef] IS NOT NULL");
         });
         m.Entity<PlayerMatchStatistic>(e =>

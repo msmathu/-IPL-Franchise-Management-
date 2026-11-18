@@ -1,4 +1,5 @@
 import { Component, computed, inject, input, signal } from '@angular/core';
+import { roleIcon } from '../../shared/player-card';
 import { rxResource } from '../../core/resource';
 import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -101,7 +102,7 @@ export interface Lookups {
             @for (p of res.value()?.items ?? []; track p.id) {
               <tr class="clickable" (click)="open(p.id)">
                 <td><span class="player-cell"><app-avatar [name]="p.fullName" [photoUrl]="p.photoUrl" [color]="p.franchise?.primaryColor ?? '#334155'" [size]="30" /><strong>{{ p.fullName }}</strong></span>@if (p.isOverseas) { <span class="tag os">OS</span> }@if (p.isWicketKeeper) { <span class="tag">WK</span> }@if (p.isDemo) { <span class="tag">Demo</span> }</td>
-                <td>{{ p.age ?? '—' }}</td><td>{{ p.country }}</td><td>{{ p.role }}</td>
+                <td>{{ p.age ?? '—' }}</td><td>{{ p.country }}</td><td><mat-icon class="role-ico">{{ roleIcon(p.roleCode, p.isWicketKeeper) }}</mat-icon>{{ p.role }}</td>
                 <td class="small muted">{{ p.battingHand === 'LeftHand' ? 'LHB' : p.battingHand === 'RightHand' ? 'RHB' : '—' }}{{ p.bowlingStyle ? ' · ' + p.bowlingStyle : '' }}</td>
                 <td>@if (p.franchise; as fr) { <span class="row"><app-monogram [name]="fr.name" [code]="fr.code" [logoUrl]="fr.logoUrl" [color]="fr.primaryColor" [size]="26" />{{ fr.code }}</span> } @else { <span class="muted">Unsigned</span> }</td>
                 <td><app-chip [text]="p.availability !== 'Available' ? p.availability : (p.status | words)" /></td>
@@ -119,6 +120,7 @@ export interface Lookups {
   styles: `.sortable { cursor: pointer; } .sortable:hover { color: var(--text); }`,
 })
 export class PlayersPage {
+  readonly roleIcon = roleIcon;
   readonly auth = inject(Auth);
   readonly P = P;
   private readonly api = inject(Api);

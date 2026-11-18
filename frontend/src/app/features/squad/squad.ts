@@ -1,5 +1,12 @@
 import { DatePipe } from '@angular/common';
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, input, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { MatIconModule } from '@angular/material/icon';
+import { MatSelectModule } from '@angular/material/select';
+import { of } from 'rxjs';
+import { Auth } from '../../core/auth';
+import { teamVars } from '../../core/team-theme';
+import { PlayerCard } from '../../shared/player-card';
 import { rxResource } from '../../core/resource';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { RouterLink } from '@angular/router';
@@ -10,12 +17,48 @@ import { ChartView, PALETTE, PageHeader, PlayerAvatar, StatCard, StateView, Stat
 
 @Component({
   selector: 'app-squad',
-  imports: [PageHeader, StateView, StatCard, StatusChip, ChartView, PlayerAvatar, RouterLink, InrPipe, WordsPipe, DatePipe, MatButtonToggleModule],
+  imports: [StateView, StatCard, StatusChip, ChartView, PlayerAvatar, PlayerCard, RouterLink, InrPipe, WordsPipe, DatePipe, MatButtonToggleModule,
+    MatIconModule, MatSelectModule, FormsModule],
   template: `
     <div class="page">
+      @if (pickable()) {
+        <div class="row">
+          <mat-form-field class="team-pick"><mat-label>Team</mat-label>
+            <mat-select [ngModel]="chosen()" (ngModelChange)="chosen.set($event)">
+              @for (f of franchises.value() ?? []; track f.id) { <mat-option [value]="f.id">{{ f.name }}</mat-option> }
+            </mat-select></mat-form-field>
+        </div>
+      }
       <app-state [loading]="res.isLoading()" [error]="res.error()" (retry)="res.reload()">
         @if (res.value(); as s) {
-          <app-page-header [title]="s.franchiseName + ' squad'" [subtitle]="s.season + ' · strength ' + s.strength.strength + ' (model)'" />
+          <div class="stack" [style]="vars()">
+          <section class="team-hero">
+            <div class="eyebrow">{{ s.season }} · Squad</div>
+            <h1>{{ s.franchiseName }}</h1>
+            <div class="hero-facts">
+              <div class="fact"><mat-icon>groups</mat-icon><div><b>Players</b><span>{{ s.composition.total }} / {{ s.composition.maxSquad }}</span></div></div>
+              <div class="fact"><mat-icon>flight</mat-icon><div><b>Overseas</b><span>{{ s.composition.overseas }} / {{ s.composition.maxOverseas }}</span></div></div>
+              <div class="fact"><mat-icon>workspace_premium</mat-icon><div><b>Captain</b><span>{{ captain() ?? '—' }}</span></div></div>
+              <div class="fact"><mat-icon>bolt</mat-icon><div><b>Team strength (model)</b><span>{{ s.strength.strength }}</span></div></div>
+              @if (s.purseRemaining) { <div class="fact"><mat-icon>account_balance_wallet</mat-icon><div><b>Purse left</b><span>{{ s.purseRemaining | inr }}</span></div></div> }
+            </div>
+          </section>
+          <div class="row">
+            <mat-button-toggle-group [value]="view()" (change)="view.set($event.value)">
+              <mat-button-toggle value="cards"><mat-icon>grid_view</mat-icon> Cards</mat-button-toggle>
+              <mat-button-toggle value="table"><mat-icon>table_rows</mat-icon> Table &amp; details</mat-button-toggle>
+            </mat-button-toggle-group>
+            <span class="spacer"></span>
+            @for (sec of sections(); track sec.key) { <a mat-button class="small" (click)="jump(sec.key)"><mat-icon class="role-ico">{{ sec.icon }}</mat-icon>{{ sec.title }}</a> }
+          </div>
+          @if (view() === 'cards') {
+            @for (sec of sections(); track sec.key) {
+              <h2 class="section-title" [id]="'sec-' + sec.key"><mat-icon>{{ sec.icon }}</mat-icon>{{ sec.title }} <span class="count">{{ sec.players.length }}</span></h2>
+              <div class="pcards">
+                @for (p of sec.players; track p.playerId) { <app-player-card [player]="p" /> }
+              </div>
+            }
+          } @else {
           <div class="grid stats">
             <app-stat label="Players" [value]="s.composition.total + ' / ' + s.composition.maxSquad" [hint]="s.composition.slotsRemaining + ' slots left · min ' + s.composition.minSquad" />
             <app-stat label="Overseas" [value]="s.composition.overseas + ' / ' + s.composition.maxOverseas" [hint]="s.composition.overseasSlotsRemaining + ' overseas slots left'" />
@@ -50,6 +93,8 @@ import { ChartView, PALETTE, PageHeader, PlayerAvatar, StatCard, StateView, Stat
               </table>
             }
           </section>
+          }
+          </div>
         }
       </app-state>
     </div>
@@ -57,7 +102,37 @@ import { ChartView, PALETTE, PageHeader, PlayerAvatar, StatCard, StateView, Stat
 })
 export class SquadPage {
   private readonly api = inject(Api);
-  readonly res = rxResource({ stream: () => this.api.get<any>('squad') });
+  private readonly auth = inject(Auth);
+  /** ?franchise=<id> shows another team's squad (league staff, or browsing a rival). */
+  readonly franchise = input<string>();
+  readonly chosen = signal<string | null>(null);
+  readonly view = signal<'cards' | 'table'>('cards');
+  /** League staff without an active franchise pick a team here. */
+  readonly pickable = computed(() => !this.auth.activeFranchise() || !!this.franchise());
+  readonly franchises = rxResource({ stream: () => (this.pickable() ? this.api.get<any[]>('franchises') : of([])) });
+  private readonly target = computed(() => this.chosen() ?? this.franchise() ?? (this.auth.activeFranchise() ? null : this.franchises.value()?.[0]?.id ?? undefined));
+  readonly res = rxResource({
+    params: () => ({ id: this.target() }),
+    stream: ({ params }) => (params.id === undefined ? of(undefined as any) : this.api.get<any>(params.id ? `franchises/${params.id}/squad` : 'squad')),
+  });
+  readonly vars = computed(() => teamVars(this.res.value()?.primaryColor, this.res.value()?.secondaryColor));
+  readonly captain = computed(() => (this.res.value()?.players ?? []).find((p: any) => p.isCaptain)?.name ?? null);
+  readonly sections = computed(() => {
+    const players: any[] = this.res.value()?.players ?? [];
+    const order = (a: any, b: any) => Number(b.isCaptain) - Number(a.isCaptain) || (b.matches ?? 0) - (a.matches ?? 0) || a.name.localeCompare(b.name);
+    const keeper = (p: any) => p.isWicketKeeper || p.roleCode === 'wk_batter';
+    return [
+      { key: 'wk', title: 'Wicketkeepers', icon: 'back_hand', players: players.filter(keeper).sort(order) },
+      { key: 'bat', title: 'Batters', icon: 'sports_cricket', players: players.filter((p) => !keeper(p) && p.roleCode === 'batter').sort(order) },
+      { key: 'ar', title: 'All-rounders', icon: 'auto_awesome', players: players.filter((p) => !keeper(p) && p.roleCode === 'allrounder').sort(order) },
+      { key: 'bowl', title: 'Bowlers', icon: 'sports_baseball', players: players.filter((p) => !keeper(p) && p.roleCode === 'bowler').sort(order) },
+    ].filter((s) => s.players.length > 0);
+  });
+
+  jump(key: string): void {
+    if (this.view() !== 'cards') this.view.set('cards');
+    setTimeout(() => document.getElementById('sec-' + key)?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+  }
   readonly group = signal('all');
   readonly groups = [
     { key: 'all', label: 'All' }, { key: 'Retained', label: 'Retained' }, { key: 'Auction', label: 'Purchased' }, { key: 'Trade', label: 'Traded in' },

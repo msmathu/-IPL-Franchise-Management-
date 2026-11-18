@@ -10,6 +10,7 @@ export interface UserFranchise {
   shortName: string;
   code: string;
   primaryColor: string;
+  secondaryColor: string;
   roles: string[];
 }
 

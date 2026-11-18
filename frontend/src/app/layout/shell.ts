@@ -15,6 +15,7 @@ import { map } from 'rxjs';
 import { NAV } from '../app.routes';
 import { Auth } from '../core/auth';
 import { Realtime, Toast } from '../core/services';
+import { TeamTheme } from '../core/team-theme';
 import { Monogram } from '../shared/ui';
 
 @Component({
@@ -28,7 +29,7 @@ import { Monogram } from '../shared/ui';
       <mat-sidenav [mode]="mobile() ? 'over' : 'side'" [opened]="!mobile() || menuOpen()" (closedStart)="menuOpen.set(false)" class="nav">
         <div class="brand">
           <span class="logo"><mat-icon>sports_cricket</mat-icon></span>
-          <div><strong>Franchise HQ</strong><span class="muted small">Management Platform</span></div>
+          <div><strong>Franchise HQ</strong><span class="muted small">{{ auth.activeFranchise()?.name ?? 'Management Platform' }}</span></div>
         </div>
         <mat-nav-list>
           @for (item of nav(); track item.path) {
@@ -84,10 +85,17 @@ import { Monogram } from '../shared/ui';
     .nav { width: 260px; border-right: 1px solid var(--line); }
     .brand { display: flex; gap: 10px; align-items: center; padding: 18px 16px 10px; }
     .brand div { display: flex; flex-direction: column; }
-    .logo { width: 38px; height: 38px; border-radius: 10px; background: linear-gradient(135deg, #2563eb, #0ea5e9); display: inline-flex; align-items: center; justify-content: center; }
-    a.active { background: rgba(56, 189, 248, 0.12); border-radius: 10px; }
+    .logo { width: 38px; height: 38px; border-radius: 10px; background: linear-gradient(135deg, var(--team), var(--team-2)); color: var(--team-ink); display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px var(--team-soft); }
+    a.active { background: var(--team-soft); border-radius: 10px; box-shadow: inset 3px 0 0 var(--team-accent); }
+    a.active mat-icon { color: var(--team-accent); }
     .nav-foot { padding: 12px 16px; }
-    .topbar { position: sticky; top: 0; z-index: 5; background: rgba(10, 22, 40, 0.92); backdrop-filter: blur(6px); border-bottom: 1px solid var(--line); gap: 8px; }
+    .topbar { position: sticky; top: 0; z-index: 5; gap: 8px; color: var(--team-ink);
+      background: radial-gradient(rgba(255, 255, 255, 0.16) 1px, transparent 1.4px) 0 0 / 7px 7px, linear-gradient(100deg, var(--team) 0%, var(--team) 55%, var(--team-2) 130%);
+      border-bottom: 3px solid var(--team-2); box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35);
+      --mat-button-text-label-text-color: var(--team-ink); --mat-icon-button-icon-color: var(--team-ink); }
+    :host-context([data-team='off']) .topbar { background: rgba(10, 22, 40, 0.92); color: var(--text); border-bottom: 1px solid var(--line);
+      --mat-button-text-label-text-color: var(--text); --mat-icon-button-icon-color: var(--text); }
+    .topbar .franchise { font-weight: 700; letter-spacing: 0.02em; }
     .franchise { display: inline-flex; gap: 8px; }
     .franchise span { margin-left: 6px; }
     .menu-note { padding: 8px 16px; max-width: 280px; }
@@ -104,6 +112,7 @@ export class Shell {
   private readonly router = inject(Router);
   readonly mobile = toSignal(inject(BreakpointObserver).observe('(max-width: 960px)').pipe(map((r) => r.matches)), { initialValue: false });
   readonly menuOpen = signal(false);
+  private readonly theme = inject(TeamTheme);
   readonly nav = computed(() => NAV.filter((n) => n.perms.length === 0 || this.auth.has(...n.perms)));
   readonly switchable = computed(() => (this.auth.user()?.franchises.length ?? 0) > 1 || !!this.auth.user()?.isLeagueWide);
   readonly roles = computed(() => {

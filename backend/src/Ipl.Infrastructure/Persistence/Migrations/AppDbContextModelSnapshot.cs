@@ -931,6 +931,10 @@ namespace Ipl.Infrastructure.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("City")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
                     b.Property<int>("CompetitionId")
                         .HasColumnType("int");
 
@@ -949,24 +953,65 @@ namespace Ipl.Infrastructure.Persistence.Migrations
                     b.Property<bool>("IsDemo")
                         .HasColumnType("bit");
 
+                    b.Property<int?>("MatchNumber")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("NoResult")
+                        .HasColumnType("bit");
+
+                    b.Property<int?>("OversLimit")
+                        .HasColumnType("int");
+
                     b.Property<string>("Result")
                         .HasMaxLength(450)
                         .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("Stage")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<string>("Team1")
                         .IsRequired()
                         .HasMaxLength(450)
                         .HasColumnType("nvarchar(450)");
 
+                    b.Property<int?>("Team1Balls")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("Team1BattedFirst")
+                        .HasColumnType("bit");
+
+                    b.Property<int?>("Team1Runs")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("Team1Wickets")
+                        .HasColumnType("int");
+
                     b.Property<string>("Team2")
                         .IsRequired()
                         .HasMaxLength(450)
                         .HasColumnType("nvarchar(450)");
 
+                    b.Property<int?>("Team2Balls")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("Team2OversLimit")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("Team2Runs")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("Team2Wickets")
+                        .HasColumnType("int");
+
                     b.Property<string>("Venue")
                         .IsRequired()
                         .HasMaxLength(450)
                         .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("Winner")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<int>("Year")
                         .HasColumnType("int");
