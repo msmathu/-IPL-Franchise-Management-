@@ -73,7 +73,7 @@ export class TradeImpact {
     <div class="squad-list">
       @for (p of players(); track p.playerId) {
         <label class="list-item"><mat-checkbox [checked]="selected().includes(p.playerId)" (change)="toggle(p.playerId)" />
-          <span>{{ p.name }}@if (p.isOverseas) { <span class="tag os">OS</span> }</span><span class="muted small">{{ p.role }} · {{ p.age }}y</span>
+          <span>{{ p.name }}@if (p.isOverseas) { <span class="tag os">OS</span> }</span><span class="muted small">{{ p.role }}@if (p.age !== null && p.age !== undefined) { · {{ p.age }}y }</span>
           <span class="spacer"></span><span class="small">{{ p.price | inr }}</span>
           @if (p.availability !== 'Available') { <span class="small warn-text">{{ p.availability }}</span> }</label>
       } @empty { <p class="muted">No players.</p> }

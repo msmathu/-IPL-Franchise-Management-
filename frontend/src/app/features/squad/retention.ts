@@ -41,7 +41,7 @@ import { PageHeader, StatCard, StateView, StatusChip, confirmAction } from '../.
                     <div class="list-item">
                       <mat-checkbox [checked]="picked().includes(p.playerId)" (change)="toggle(p.playerId)" [disabled]="o.hasSubmitted" />
                       <a [routerLink]="['/players', p.playerId]">{{ p.name }}</a>@if (p.isOverseas) { <span class="tag os">OS</span> }@if (!p.isCapped) { <span class="tag">Uncapped</span> }
-                      <span class="muted small">{{ p.role }} · {{ p.age }}y</span><span class="spacer"></span>
+                      <span class="muted small">{{ p.role }}@if (p.age !== null && p.age !== undefined) { · {{ p.age }}y }</span><span class="spacer"></span>
                       @if (p.availability !== 'Available') { <app-chip [text]="p.availability" /> }
                       <span class="small">{{ p.currentSalary | inr }}</span>
                       @if (auth.has(P.retentionManage) && !o.hasSubmitted) { <button mat-icon-button (click)="release(p)" aria-label="Release"><mat-icon>person_remove</mat-icon></button> }
