@@ -170,6 +170,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentUser? 
             e.HasIndex(x => x.Status);
             e.HasIndex(x => x.CurrentFranchiseId);
             e.Property(x => x.CricsheetId).HasMaxLength(16);
+            e.Property(x => x.PhotoCredit).HasMaxLength(400);
+            e.Property(x => x.PhotoSourceUrl).HasMaxLength(400);
             e.HasIndex(x => x.CricsheetId).IsUnique().HasFilter("[CricsheetId] IS NOT NULL");
             e.Property(x => x.FullName).HasMaxLength(150);
             e.Property(x => x.DisplayName).HasMaxLength(100);

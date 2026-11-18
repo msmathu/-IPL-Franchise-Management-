@@ -12,7 +12,9 @@ With `DemoData:Enabled=true` on an empty database:
 
 ### Images and logos
 
-No logos or photos are bundled: official league/franchise logos are trademarks and player photos are copyrighted. The app shows the franchise's short code on its team colour, and player initials. To show real images, save an **https URL to an image you have the rights to use** (your own photographer, an agency licence, the franchise's permission, or a Wikimedia Commons file used under its licence): player photos in *Player → Career & availability → Photo* (`players.manage`), franchise logos in *Franchise → Edit → Logo URL*. Broken links fall back to the badge.
+**Player photos** come from **Wikimedia Commons**, where every file is freely licensed (Creative Commons or public domain). *Players → Get free photos* (`players.manage`, or `POST /api/v1/players/photos/import`) identifies each player exactly (Cricsheet id → ESPNcricinfo id in the Cricsheet register → Wikidata item with that id → its image, or the free lead image of the player's English Wikipedia article), downloads a 320 px version into `Media:Folder` (default `App_Data/media`, served at `/media`) and stores the **author, licence and source page**, shown under the photo on the profile, as the licences require. About a third of the squad has a free photo; the rest show initials. Photos set by hand are never replaced. Back up the media folder with the database.
+
+**Team logos are not downloaded**: IPL franchise logos are trademarks and are not freely licensed (Wikipedia only uses them under "fair use"). Franchises show their short code on the team colour. To show a logo you have permission to use, save its https URL in *Franchise → Edit → Logo URL*. Player photos can also be set by hand (https URL you have the rights to use) in *Player → Career & availability → Photo*; broken links fall back to the badge.
 
 ## Statistics from Cricsheet (ball-by-ball)
 

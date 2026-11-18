@@ -77,6 +77,18 @@ public class PlayersController(PlayerService players, StatisticsService stats, R
         return await players.ImportCsvAsync(s, ct);
     }
 
+    /// <summary>Status of the free-photo import (Wikimedia Commons).</summary>
+    [HttpGet("photos"), HasPermission(Perm.PlayersRead)]
+    public Task<PhotoStatusDto> PhotoStatus([FromServices] PhotoImportRunner runner, [FromServices] AppDbContext db, CancellationToken ct) => runner.StatusAsync(db, ct);
+
+    /// <summary>Downloads freely licensed player photos from Wikimedia Commons in the background.</summary>
+    [HttpPost("photos/import"), HasPermission(Perm.PlayersManage)]
+    public async Task<IActionResult> PhotoImport([FromServices] PhotoImportRunner runner, [FromServices] AppDbContext db, CancellationToken ct)
+    {
+        if (!runner.TryStart()) throw new ConflictException("A photo import is already running.");
+        return Accepted(await runner.StatusAsync(db, ct));
+    }
+
     [HttpPut("{id:guid}/cricsheet-id"), HasPermission(Perm.StatsImport)]
     public async Task<IActionResult> SetCricsheetId(Guid id, CricsheetLinkRequest req, CancellationToken ct)
     {

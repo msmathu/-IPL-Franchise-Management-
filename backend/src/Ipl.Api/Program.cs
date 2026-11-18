@@ -178,6 +178,13 @@ if (app.Environment.IsDevelopment() || builder.Configuration.GetValue("Swagger:E
 }
 app.UseDefaultFiles();
 app.UseStaticFiles();
+// Downloaded media (player photos). Files are public: only freely licensed images are stored here.
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(app.Services.GetRequiredService<Ipl.Infrastructure.Services.MediaFolder>().Root),
+    RequestPath = "/media",
+    OnPrepareResponse = c => c.Context.Response.Headers.CacheControl = "public, max-age=604800",
+});
 app.UseCors("web");
 app.UseAuthentication();
 app.UseRateLimiter();

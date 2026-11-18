@@ -28,7 +28,7 @@ public record PlayerDetailDto(
     string RoleCode, int? SecondaryRoleId, string? SecondaryRole, bool IsWicketKeeper, bool IsOverseas, bool IsCapped,
     PlayerFranchiseDto? Franchise, string Status, string CareerStatus, AvailabilityDto Availability,
     IReadOnlyList<PlayerTeamHistoryDto> TeamHistory, decimal? CurrentPrice, bool IsDemo, string DataSource, DateTime? UpdatedAt,
-    string? CricsheetId = null);
+    string? CricsheetId = null, string? PhotoCredit = null, string? PhotoSourceUrl = null);
 
 public record SavePlayerRequest(
     string FullName, string DisplayName, DateOnly? DateOfBirth, int CountryId, string? PhotoUrl, BattingHand BattingHand,
@@ -161,7 +161,7 @@ public class PlayerService(IAppDbContext db, ICurrentUser me, IAuditService audi
             p.Status.ToString(), p.CareerStatus.ToString(),
             avail is null ? new AvailabilityDto(nameof(AvailabilityStatus.Available), null, null, p.CreatedAt)
                 : new AvailabilityDto(avail.Status.ToString(), avail.PublicNote, avail.ExpectedReturn, avail.UpdatedAt),
-            history, price > 0 ? price : null, p.IsDemo, p.DataSource, p.UpdatedAt ?? p.CreatedAt, p.CricsheetId);
+            history, price > 0 ? price : null, p.IsDemo, p.DataSource, p.UpdatedAt ?? p.CreatedAt, p.CricsheetId, p.PhotoCredit, p.PhotoSourceUrl);
     }
 
     /// <summary>Links (or unlinks, with null) a player to a Cricsheet register id; the next Cricsheet import loads the matches.</summary>
@@ -341,14 +341,17 @@ public class PlayerService(IAppDbContext db, ICurrentUser me, IAuditService audi
             throw new AppValidationException("dateOfBirth", "Enter a realistic date of birth.");
         var country = await db.Countries.FirstOrDefaultAsync(c => c.Id == r.CountryId, ct) ?? throw new AppValidationException("countryId", "Unknown country.");
         if (!await db.PlayerRoles.AnyAsync(x => x.Id == r.PrimaryRoleId, ct)) throw new AppValidationException("primaryRoleId", "Unknown role.");
-        if (r.PhotoUrl is { Length: > 0 } url && !(Uri.TryCreate(url, UriKind.Absolute, out var u) && u.Scheme == Uri.UriSchemeHttps))
+        if (r.PhotoUrl is { Length: > 0 } url && !url.StartsWith("/media/players/", StringComparison.Ordinal)
+            && !(Uri.TryCreate(url, UriKind.Absolute, out var u) && u.Scheme == Uri.UriSchemeHttps))
             throw new AppValidationException("photoUrl", "The photo must be an https:// address you have the rights to use.");
         p.FullName = r.FullName.Trim();
         p.DisplayName = string.IsNullOrWhiteSpace(r.DisplayName) ? p.FullName : r.DisplayName.Trim();
         p.DateOfBirth = r.DateOfBirth;
         p.CountryId = country.Id;
         p.IsOverseas = !country.IsHomeCountry;
-        p.PhotoUrl = string.IsNullOrWhiteSpace(r.PhotoUrl) ? null : r.PhotoUrl.Trim();
+        var photo = string.IsNullOrWhiteSpace(r.PhotoUrl) ? null : r.PhotoUrl.Trim();
+        if (photo != p.PhotoUrl) { p.PhotoCredit = null; p.PhotoSourceUrl = null; }
+        p.PhotoUrl = photo;
         p.BattingHand = r.BattingHand;
         p.BowlingStyle = r.BowlingStyle?.Trim() ?? "";
         p.BowlingType = r.BowlingType;

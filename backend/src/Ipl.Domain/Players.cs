@@ -63,6 +63,10 @@ public class Player : AuditableEntity, ISoftDelete
     public int CountryId { get; set; }
     public Country? Country { get; set; }
     public string? PhotoUrl { get; set; }
+    /// <summary>Author and licence of the photo (required for Creative Commons images).</summary>
+    public string? PhotoCredit { get; set; }
+    /// <summary>Where the photo comes from (e.g. its Wikimedia Commons page).</summary>
+    public string? PhotoSourceUrl { get; set; }
     /// <summary>Cricsheet register identifier (8 hex characters), used to link ball-by-ball data.</summary>
     public string? CricsheetId { get; set; }
     public BattingHand BattingHand { get; set; }

@@ -1266,6 +1266,14 @@ namespace Ipl.Infrastructure.Persistence.Migrations
                     b.Property<bool>("IsWicketKeeper")
                         .HasColumnType("bit");
 
+                    b.Property<string>("PhotoCredit")
+                        .HasMaxLength(400)
+                        .HasColumnType("nvarchar(400)");
+
+                    b.Property<string>("PhotoSourceUrl")
+                        .HasMaxLength(400)
+                        .HasColumnType("nvarchar(400)");
+
                     b.Property<string>("PhotoUrl")
                         .HasMaxLength(450)
                         .HasColumnType("nvarchar(450)");

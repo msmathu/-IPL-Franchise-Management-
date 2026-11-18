@@ -86,6 +86,10 @@ public static class DependencyInjection
 
         services.AddSingleton(config.GetSection("Cricsheet").Get<CricsheetOptions>() ?? new CricsheetOptions());
         services.AddScoped<CricsheetImporter>();
+        services.AddSingleton(config.GetSection("Media").Get<MediaOptions>() ?? new MediaOptions());
+        services.AddSingleton<MediaFolder>();
+        services.AddScoped<PlayerPhotoImporter>();
+        services.AddSingleton<PhotoImportRunner>();
         services.AddSingleton<CricsheetImportRunner>();
         services.AddHostedService<CricsheetScheduler>();
 

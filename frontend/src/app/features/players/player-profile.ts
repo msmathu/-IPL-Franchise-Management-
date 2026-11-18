@@ -218,6 +218,9 @@ export class PlayerAnalysis {
             @if (p.isDemo) { <span class="tag">Fictional demo player</span> }
             <app-chip [text]="p.status | words" /><app-chip [text]="p.availability.status" />
           </div>
+          @if (p.photoCredit) {
+            <p class="small muted photo-credit">{{ p.photoCredit }}@if (p.photoSourceUrl) { · <a [href]="p.photoSourceUrl" target="_blank" rel="noopener">source &amp; licence</a> }</p>
+          }
           <div class="grid stats">
             <app-stat label="Batting" [value]="p.battingHand === 'LeftHand' ? 'Left-handed' : p.battingHand === 'RightHand' ? 'Right-handed' : 'Not recorded'" />
             <app-stat label="Bowling" [value]="p.bowlingStyle || (p.bowlingType === 'Unknown' ? 'Not recorded' : 'Does not bowl')" />
@@ -279,6 +282,7 @@ export class PlayerAnalysis {
                 <section class="card"><h2>Photo</h2>
                   <div class="row"><mat-form-field class="wide"><mat-label>Photo URL (https, licensed image)</mat-label><input matInput [(ngModel)]="photoUrl" /></mat-form-field>
                     <button mat-stroked-button (click)="savePhoto(p)">Save photo</button></div>
+                  @if (p.photoCredit) { <p class="small">Current: {{ p.photoCredit }} @if (p.photoSourceUrl) { · <a [href]="p.photoSourceUrl" target="_blank" rel="noopener">source &amp; licence</a> }</p> }
                   <p class="muted small">Use an image you have the rights to (your own photographer, an agency licence, or a Wikimedia Commons file under its licence). Official league or franchise photos need permission.</p>
                 </section>
               }

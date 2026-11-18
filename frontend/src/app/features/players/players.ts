@@ -34,9 +34,17 @@ export interface Lookups {
         @if (auth.has(P.playersManage)) {
           <button mat-stroked-button (click)="file.click()"><mat-icon>upload</mat-icon>Import CSV</button>
           <input #file type="file" accept=".csv" hidden (change)="import(file)" />
+          @if (photos.value()?.running) { <span class="chip" data-tone="warn">{{ photos.value()?.stage }}…</span> }
+          @else { <button mat-stroked-button (click)="importPhotos()" title="Free, credited photos from Wikimedia Commons"><mat-icon>photo_library</mat-icon>Get free photos</button> }
           <button mat-flat-button (click)="editing.set(!editing())"><mat-icon>person_add</mat-icon>Add player</button>
         }
       </app-page-header>
+      @if (photos.value(); as ph) {
+        @if (ph.lastRun; as r) {
+          <p class="small muted">Photos: {{ ph.playersWithPhoto }} of {{ ph.realPlayers }} real players have a freely licensed photo (Wikimedia Commons, credited on each profile).
+            @if (!r.succeeded) { <span class="warn-text">Last photo import failed: {{ r.error }}</span> }</p>
+        }
+      }
       @if (editing() && lookups.value(); as l) {
         <section class="card"><h2>New player</h2>
           <form [formGroup]="form" (ngSubmit)="create()" class="form-grid">
@@ -124,6 +132,28 @@ export class PlayersPage {
   readonly editing = signal(false);
   readonly lookups = rxResource({ stream: () => this.api.get<Lookups>('players/lookups') });
   readonly franchises = rxResource({ stream: () => this.api.get<any[]>('franchises') });
+  readonly photos = rxResource({ stream: () => this.api.get<any>('players/photos') });
+  private photoPoll?: ReturnType<typeof setInterval>;
+
+  importPhotos(): void {
+    this.api.post<any>('players/photos/import').subscribe({
+      next: () => {
+        this.toast.ok('Downloading free photos from Wikimedia Commons. This takes a minute or two.');
+        this.photos.reload();
+        clearInterval(this.photoPoll);
+        this.photoPoll = setInterval(() => {
+          this.photos.reload();
+          const v = this.photos.value();
+          if (v && !v.running) {
+            clearInterval(this.photoPoll);
+            this.res.reload();
+            if (v.lastRun?.succeeded) this.toast.ok(`Photos: ${v.lastRun.photosAdded} added, ${v.lastRun.photosUnchanged} already up to date.`);
+          }
+        }, 4000);
+      },
+      error: (e) => this.toast.error(e),
+    });
+  }
   private readonly query = computed(() => {
     const f = { ...this.f() };
     const toRupees = (cr: unknown) => (cr === null || cr === undefined || cr === '' ? null : Number(cr) * 1e7);
