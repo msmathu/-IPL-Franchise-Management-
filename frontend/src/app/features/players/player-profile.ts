@@ -293,6 +293,20 @@ export class PlayerAnalysis {
                 </section>
               </div>
               @if (auth.has(P.playersManage)) {
+                @if (!p.franchise && !p.isDemo) {
+                  <section class="card"><h2>Auction pool</h2>
+                    <div class="row">
+                      @if (p.status === 'AvailableForAuction') {
+                        <span class="chip" data-tone="good">Available for auction</span>
+                        <span class="small muted">The auctioneer can add this player to an auction (Auction Centre → Add players / Import eligible).</span>
+                        <span class="spacer"></span><button mat-button (click)="setStatus(p, 'Active')">Remove from pool</button>
+                      } @else {
+                        <span class="small muted">This player has no team and is not in the auction pool, so no franchise can sign them yet.</span>
+                        <span class="spacer"></span><button mat-flat-button (click)="setStatus(p, 'AvailableForAuction')"><mat-icon>gavel</mat-icon>Make available for auction</button>
+                      }
+                    </div>
+                  </section>
+                }
                 <section class="card"><h2>Photo</h2>
                   <div class="row"><mat-form-field class="wide"><mat-label>Photo URL (https, licensed image)</mat-label><input matInput [(ngModel)]="photoUrl" /></mat-form-field>
                     <button mat-stroked-button (click)="savePhoto(p)">Save photo</button></div>
@@ -360,6 +374,17 @@ export class PlayerProfilePage {
       battingHand: p.battingHand, bowlingStyle: p.bowlingStyle, bowlingType: p.bowlingType, primaryRoleId: p.primaryRoleId, secondaryRoleId: p.secondaryRoleId,
       isWicketKeeper: p.isWicketKeeper, isCapped: p.isCapped, status: p.status, careerStatus: p.careerStatus, dataSource: p.dataSource,
     }).subscribe({ next: () => { this.toast.ok('Photo saved.'); this.res.reload(); }, error: (e) => this.toast.error(e) });
+  }
+
+  setStatus(p: any, status: string): void {
+    this.api.put(`players/${this.id()}`, {
+      fullName: p.fullName, displayName: p.displayName, dateOfBirth: p.dateOfBirth, countryId: p.countryId, photoUrl: p.photoUrl,
+      battingHand: p.battingHand, bowlingStyle: p.bowlingStyle, bowlingType: p.bowlingType, primaryRoleId: p.primaryRoleId, secondaryRoleId: p.secondaryRoleId,
+      isWicketKeeper: p.isWicketKeeper, isCapped: p.isCapped, status, careerStatus: p.careerStatus, dataSource: p.dataSource,
+    }).subscribe({
+      next: () => { this.toast.ok(status === 'AvailableForAuction' ? 'Player added to the auction pool.' : 'Player removed from the auction pool.'); this.res.reload(); },
+      error: (e) => this.toast.error(e),
+    });
   }
 
   rerun(): void {

@@ -33,8 +33,8 @@ import { Monogram, PageHeader, StateView, StatusChip } from '../../shared/ui';
             @for (t of res.value()?.items ?? []; track t.id) {
               <tr class="clickable" (click)="router.navigate(['/trading', t.id])">
                 <td><strong>{{ t.reference }}</strong>@if (t.awaitingMyResponse) { <span class="tag os">Your move</span> }</td>
-                <td><span class="row"><app-monogram [name]="t.initiator.name" [color]="t.initiator.primaryColor" [size]="20" />{{ t.initiator.shortName }}</span></td>
-                <td><span class="row"><app-monogram [name]="t.counterparty.name" [color]="t.counterparty.primaryColor" [size]="20" />{{ t.counterparty.shortName }}</span></td>
+                <td><span class="row"><app-monogram [name]="t.initiator.name" [code]="t.initiator.shortName" [color]="t.initiator.primaryColor" [size]="20" />{{ t.initiator.name }}</span></td>
+                <td><span class="row"><app-monogram [name]="t.counterparty.name" [code]="t.counterparty.shortName" [color]="t.counterparty.primaryColor" [size]="20" />{{ t.counterparty.name }}</span></td>
                 <td>{{ t.type | words }}</td><td class="num">{{ t.playerCount }}</td><td class="num">{{ t.cashConsideration ? (t.cashConsideration | inr) : '—' }}</td>
                 <td><app-chip [text]="t.status | words" /></td><td class="small">{{ t.expiresAt ? (t.expiresAt | date: 'd MMM HH:mm') : '' }}</td><td class="small muted">{{ t.updatedAt | date: 'd MMM HH:mm' }}</td>
               </tr>

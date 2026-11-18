@@ -82,7 +82,7 @@ import { Monogram, PageHeader, PlayerAvatar, StateView, StatusChip, confirmActio
               <tr><th>Franchise</th><th class="num">Purse left</th><th class="num">Max bid allowed</th><th class="num">Squad</th><th class="num">Slots left</th><th class="num">Overseas slots</th><th class="num">Bought</th><th class="num">Spent here</th></tr>
               @for (f of a.franchises; track f.franchiseId) {
                 <tr [class.me]="f.franchiseId === auth.user()?.activeFranchiseId" [class.leading]="f.franchiseId === a.currentLot?.currentBidFranchiseId">
-                  <td><span class="row"><app-monogram [name]="f.name" [color]="f.primaryColor" [size]="22" />{{ f.shortName }}</span></td>
+                  <td><span class="row"><app-monogram [name]="f.name" [code]="f.shortName" [color]="f.primaryColor" [size]="22" />{{ f.name }}</span></td>
                   <td class="num">{{ f.purseRemaining | inr }}</td><td class="num">{{ f.maxBidAllowed | inr }}</td><td class="num">{{ f.squadSize }}</td>
                   <td class="num">{{ f.slotsRemaining }}</td><td class="num">{{ f.overseasSlotsRemaining }}</td><td class="num">{{ f.bought }}</td><td class="num">{{ f.spent | inr }}</td></tr>
               }

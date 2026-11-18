@@ -104,7 +104,7 @@ public class DemoSeeder(AppDbContext db, IPasswordHasher<User> hasher, DemoSeedO
         {
             var f = new Franchise
             {
-                Code = t.Code, Name = t.Name, ShortName = t.ShortName, City = t.City, HomeGround = t.Ground, OwnerName = t.Owner, OwnerCompany = t.Owner,
+                Code = t.Code, Name = t.Name, ShortName = t.Code, City = t.City, HomeGround = t.Ground, OwnerName = t.Owner, OwnerCompany = t.Owner,
                 PrimaryColor = t.Primary, SecondaryColor = t.Secondary, FoundedYear = t.Founded, IsDemo = false, CreatedAt = now,
             };
             f.Staff.Add(new FranchiseStaff { Name = RealSquads.Captains[t.Code], Position = "Captain (IPL 2026)", Category = StaffCategory.Management });

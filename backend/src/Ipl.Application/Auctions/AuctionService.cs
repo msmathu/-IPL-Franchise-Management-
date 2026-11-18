@@ -447,7 +447,7 @@ public class AuctionService(IAppDbContext db, ICurrentUser me, IClock clock, IRu
 
     private async Task<List<FranchisePurseDto>> PursesAsync(AuctionEvent a, SeasonRules seasonRules, CancellationToken ct)
     {
-        var franchises = await db.Franchises.AsNoTracking().Where(f => f.IsActive).OrderBy(f => f.ShortName).ToListAsync(ct);
+        var franchises = await db.Franchises.AsNoTracking().Where(f => f.IsActive).OrderBy(f => f.Name).ToListAsync(ct);
         var purses = await db.FranchiseSeasons.AsNoTracking().Where(s => s.SeasonId == a.SeasonId).ToDictionaryAsync(s => s.FranchiseId, s => s.PurseRemaining, ct);
         var squads = await db.FranchiseSquads.AsNoTracking().Where(s => s.SeasonId == a.SeasonId && s.Status == SquadMemberStatus.Active)
             .GroupBy(s => s.FranchiseId).Select(g => new { g.Key, Count = g.Count(), Overseas = g.Count(x => x.Player!.IsOverseas) }).ToDictionaryAsync(x => x.Key, ct);

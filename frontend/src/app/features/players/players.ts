@@ -168,7 +168,7 @@ export class PlayersPage {
   readonly form = inject(FormBuilder).nonNullable.group({
     fullName: ['', Validators.required], displayName: [''], dateOfBirth: ['', Validators.required], countryId: [1, Validators.required],
     primaryRoleId: [1, Validators.required], secondaryRoleId: [null as number | null], battingHand: ['RightHand'], bowlingType: ['None'], bowlingStyle: [''],
-    isWicketKeeper: [false], isCapped: [false], status: ['Active'], careerStatus: ['Active'], dataSource: ['', Validators.required], photoUrl: [''],
+    isWicketKeeper: [false], isCapped: [false], status: ['AvailableForAuction'], careerStatus: ['Active'], dataSource: ['', Validators.required], photoUrl: [''],
   });
 
   set(key: string, value: unknown): void {
