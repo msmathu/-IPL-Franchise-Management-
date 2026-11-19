@@ -186,3 +186,22 @@ img.monogram.logo { object-fit: contain; background: #fff; padding: 2px; }
 .pname, .tname { display: inline-flex; align-items: center; gap: 8px; vertical-align: middle; }
 .pname.sm { gap: 6px; }
 .pname a { color: inherit; } .pname a:hover { color: var(--team-accent); }
+
+/* Squad page drag tray */
+.drag-card { cursor: grab; } .drag-card:active { cursor: grabbing; }
+.drag-card.cdk-drag-placeholder { opacity: 0.35; }
+.pcard-drag-preview { padding: 8px 14px; border-radius: 999px; background: var(--team); color: var(--team-ink); box-shadow: 0 10px 30px rgba(0,0,0,0.5); font-weight: 800; }
+.tray { position: sticky; bottom: 0; z-index: 4; display: flex; flex-wrap: wrap; gap: 12px; align-items: stretch; margin-top: 18px; padding: 12px; border-radius: 14px;
+  background: rgba(10, 22, 40, 0.94); backdrop-filter: blur(6px); border: 1px solid var(--team-line); box-shadow: 0 -8px 24px rgba(0,0,0,0.4); }
+.tray-title { display: flex; align-items: center; gap: 6px; font-weight: 800; color: var(--team-accent); }
+.tray-zone { flex: 1; min-width: 240px; display: flex; flex-direction: column; gap: 8px; padding: 10px; border-radius: 12px; border: 2px dashed var(--line); transition: background 0.15s, border-color 0.15s; }
+.tray-zone.cdk-drop-list-receiving { border-color: var(--team-accent); }
+.tray-zone.cdk-drop-list-dragging { background: var(--team-soft); border-color: var(--team-accent); }
+.tray-zone .cdk-drag-placeholder { display: none; }
+.tray-head { display: flex; align-items: center; gap: 6px; }
+.tray-chips { display: flex; flex-wrap: wrap; gap: 6px; min-height: 30px; }
+.tray-chips .chip { gap: 2px; padding-right: 2px; }
+.tray-chips .chip button.mat-mdc-icon-button { width: 22px; height: 22px; padding: 0; background: transparent; --mat-icon-button-state-layer-size: 22px; }
+.tray-chips .chip button mat-icon { font-size: 16px; width: 16px; height: 16px; }
+.tray-zone > button { background: var(--team) !important; color: var(--team-ink) !important; }
+.tray-zone > button:disabled { opacity: 0.45; }

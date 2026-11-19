@@ -2,6 +2,9 @@ import { DatePipe } from '@angular/common';
 import { PlayerName } from '../../shared/media';
 import { Component, computed, inject, input, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { CdkDrag, CdkDragDrop, CdkDragPreview, CdkDropList, CdkDropListGroup } from '@angular/cdk/drag-drop';
+import { Router } from '@angular/router';
+import { P } from '../../core/services';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSelectModule } from '@angular/material/select';
 import { of } from 'rxjs';
@@ -18,7 +21,7 @@ import { ChartView, PALETTE, PageHeader, PlayerAvatar, StatCard, StateView, Stat
 
 @Component({
   selector: 'app-squad',
-  imports: [PlayerName, StateView, StatCard, StatusChip, ChartView, PlayerCard, InrPipe, WordsPipe, DatePipe, MatButtonToggleModule,
+  imports: [CdkDropListGroup, CdkDropList, CdkDrag, CdkDragPreview, PlayerName, StateView, StatCard, StatusChip, ChartView, PlayerCard, InrPipe, WordsPipe, DatePipe, MatButtonToggleModule,
     MatIconModule, MatSelectModule, FormsModule],
   template: `
     <div class="page">
@@ -53,12 +56,31 @@ import { ChartView, PALETTE, PageHeader, PlayerAvatar, StatCard, StateView, Stat
             @for (sec of sections(); track sec.key) { <a mat-button class="small" (click)="jump(sec.key)"><mat-icon class="role-ico">{{ sec.icon }}</mat-icon>{{ sec.title }}</a> }
           </div>
           @if (view() === 'cards') {
+            <div cdkDropListGroup>
             @for (sec of sections(); track sec.key) {
               <h2 class="section-title" [id]="'sec-' + sec.key"><mat-icon>{{ sec.icon }}</mat-icon>{{ sec.title }} <span class="count">{{ sec.players.length }}</span></h2>
-              <div class="pcards">
-                @for (p of sec.players; track p.playerId) { <app-player-card [player]="p" /> }
+              <div class="pcards" cdkDropList cdkDropListSortingDisabled cdkDropListAutoScrollDisabled [cdkDropListData]="sec.key" [cdkDropListConnectedTo]="trayIds()">
+                @for (p of sec.players; track p.playerId) {
+                  <div cdkDrag [cdkDragData]="p" class="drag-card"><app-player-card [player]="p" />
+                    <div class="pcard-drag-preview" *cdkDragPreview><app-pname [id]="p.playerId" [name]="p.name" [size]="34" [link]="false" /></div></div>
+                }
               </div>
             }
+            <div class="tray">
+              <span class="tray-title"><mat-icon>pan_tool_alt</mat-icon>Drag player cards here:</span>
+              @for (t of trays(); track t.key) {
+                <div class="tray-zone" cdkDropList cdkDropListAutoScrollDisabled [id]="'tray-' + t.key" [cdkDropListData]="t.key" (cdkDropListDropped)="trayDrop($event, t.key)">
+                  <div class="tray-head"><mat-icon>{{ t.icon }}</mat-icon><strong>{{ t.label }}</strong><span class="muted small">{{ t.hint }}</span></div>
+                  <div class="tray-chips">
+                    @for (p of tray()[t.key]; track p.playerId) {
+                      <span class="chip"><app-pname [id]="p.playerId" [name]="p.name" [size]="20" [link]="false" /><button mat-icon-button (click)="untray(t.key, p.playerId)" aria-label="Remove"><mat-icon>close</mat-icon></button></span>
+                    } @empty { <span class="muted small">Drop here</span> }
+                  </div>
+                  <button mat-flat-button [disabled]="tray()[t.key].length < t.min" (click)="go(t.key)">{{ t.action }} ({{ tray()[t.key].length }})</button>
+                </div>
+              }
+            </div>
+            </div>
           } @else {
           <div class="grid stats">
             <app-stat label="Players" [value]="s.composition.total + ' / ' + s.composition.maxSquad" [hint]="s.composition.slotsRemaining + ' slots left · min ' + s.composition.minSquad" />
@@ -102,6 +124,39 @@ import { ChartView, PALETTE, PageHeader, PlayerAvatar, StatCard, StateView, Stat
   `,
 })
 export class SquadPage {
+  private readonly router = inject(Router);
+  /** Players dropped on each action tray. */
+  readonly tray = signal<Record<string, any[]>>({ compare: [], trade: [], xi: [] });
+  readonly trays = computed(() => {
+    const own = !!this.auth.activeFranchise() && (!this.res.value() || this.res.value()?.franchiseId === this.auth.activeFranchise()?.id);
+    return [
+      { key: 'compare', label: 'Compare', icon: 'compare_arrows', hint: '2–5 players', action: 'Compare', min: 2, max: 5, show: this.auth.has(P.comparisonsRead) },
+      { key: 'trade', label: 'Offer in a trade', icon: 'swap_horiz', hint: 'your players', action: 'Start trade offer', min: 1, max: 10, show: own && this.auth.has(P.tradesCreate) },
+      { key: 'xi', label: 'Playing XI', icon: 'sports_cricket', hint: 'up to 11', action: 'Open in XI builder', min: 1, max: 11, show: own && this.auth.has(P.xiManage) },
+    ].filter((t) => t.show);
+  });
+  readonly trayIds = computed(() => this.trays().map((t) => 'tray-' + t.key));
+
+  trayDrop(e: CdkDragDrop<string>, key: string): void {
+    const p = e.item.data;
+    const t = this.trays().find((x) => x.key === key)!;
+    this.tray.update((all) => {
+      const list = all[key];
+      if (list.some((x) => x.playerId === p.playerId) || list.length >= t.max) return all;
+      return { ...all, [key]: [...list, p] };
+    });
+  }
+
+  untray(key: string, id: string): void {
+    this.tray.update((all) => ({ ...all, [key]: all[key].filter((x) => x.playerId !== id) }));
+  }
+
+  go(key: string): void {
+    const ids = this.tray()[key].map((p) => p.playerId).join(',');
+    if (key === 'compare') void this.router.navigate(['/comparison'], { queryParams: { ids } });
+    if (key === 'trade') void this.router.navigate(['/trading/new'], { queryParams: { offer: ids } });
+    if (key === 'xi') void this.router.navigate(['/playing-xi'], { queryParams: { add: ids } });
+  }
   private readonly api = inject(Api);
   private readonly auth = inject(Auth);
   /** ?franchise=<id> shows another team's squad (league staff, or browsing a rival). */

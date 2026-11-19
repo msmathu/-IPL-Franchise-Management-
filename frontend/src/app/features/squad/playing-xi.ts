@@ -1,6 +1,6 @@
 import { CdkDrag, CdkDragDrop, CdkDragPlaceholder, CdkDropList, CdkDropListGroup, moveItemInArray } from '@angular/cdk/drag-drop';
 import { DatePipe } from '@angular/common';
-import { Component, computed, effect, inject, signal } from '@angular/core';
+import { Component, computed, effect, inject, input, signal, untracked } from '@angular/core';
 import { rxResource } from '../../core/resource';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -180,10 +180,21 @@ export class PlayingXIPage {
   viceCaptainId: string | null = null;
   keeperId: string | null = null;
 
+  /** ?add=a,b (from the squad page's drag tray) starts a new XI with these players. */
+  readonly add$ = input<string>(undefined, { alias: 'add' });
+  private added = false;
+
   constructor() {
     effect(() => {
       this.slots();
       this.validate();
+    });
+    effect(() => {
+      const ids = (this.add$() ?? '').split(',').filter(Boolean);
+      const players = this.squad.value()?.players;
+      if (this.added || !ids.length || !players) return;
+      this.added = true;
+      untracked(() => ids.slice(0, 11).forEach((id) => { const p = players.find((x: any) => x.playerId === id); if (p) this.add(p, false); }));
     });
   }
 

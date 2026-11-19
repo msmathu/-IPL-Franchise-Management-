@@ -1,6 +1,6 @@
 import { DatePipe } from '@angular/common';
 import { PlayerName } from '../../shared/media';
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal, effect, input, untracked } from '@angular/core';
 import { rxResource } from '../../core/resource';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -76,6 +76,15 @@ export class ComparisonPage {
   private readonly api = inject(Api);
   private readonly toast = inject(Toast);
   readonly selected = signal<{ id: string; fullName: string }[]>([]);
+  /** ?ids=a,b,c (e.g. from the squad page's drag tray) preselects up to five players. */
+  readonly ids = input<string>();
+  private readonly preselect = effect(() => {
+    const ids = (this.ids() ?? '').split(',').filter(Boolean).slice(0, 5);
+    if (!ids.length) return;
+    untracked(() => ids.forEach((id) => this.api.get<any>(`players/${id}`).subscribe((p) => {
+      if (!this.selected().some((s) => s.id === p.id)) this.selected.update((s) => [...s, { id: p.id, fullName: p.fullName }]);
+    })));
+  });
   readonly res = rxResource({
     params: () => this.selected().map((p) => p.id),
     stream: ({ params }) => (params.length >= 2 ? this.api.post<any>('comparisons/compare', { playerIds: params }) : of(null)),

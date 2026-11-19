@@ -1,4 +1,4 @@
-import { Component, computed, effect, inject, input, output, signal } from '@angular/core';
+import { Component, computed, effect, inject, input, output, signal, untracked } from '@angular/core';
 import { PlayerName, TeamName } from '../../shared/media';
 import { rxResource } from '../../core/resource';
 import { FormsModule } from '@angular/forms';
@@ -153,6 +153,12 @@ export class TradeEditorPage {
   readonly others = computed(() => (this.franchises.value() ?? []).filter((f) => f.id !== this.auth.user()?.activeFranchiseId));
   readonly counterparty = signal<string | null>(null);
   readonly offered = signal<string[]>([]);
+  /** ?offer=a,b (from the squad page's drag tray) preselects the players offered. */
+  readonly offer = input<string>();
+  private readonly preselectOffer = effect(() => {
+    const ids = (this.offer() ?? '').split(',').filter(Boolean);
+    if (ids.length) untracked(() => this.offered.set(ids));
+  });
   readonly requested = signal<string[]>([]);
   readonly cashLakh = signal(0);
   readonly payer = signal<'me' | 'them'>('me');

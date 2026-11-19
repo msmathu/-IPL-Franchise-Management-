@@ -1,6 +1,8 @@
+import { CdkDrag, CdkDragDrop, CdkDragPlaceholder, CdkDropList, CdkDropListGroup, moveItemInArray } from '@angular/cdk/drag-drop';
 import { DatePipe } from '@angular/common';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { PlayerName } from '../../shared/media';
-import { Component, computed, effect, inject, signal } from '@angular/core';
+import { Component, computed, effect, inject, signal, untracked } from '@angular/core';
 import { rxResource } from '../../core/resource';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -19,7 +21,7 @@ import { PageHeader, StatCard, StateView, StatusChip, confirmAction } from '../.
 @Component({
   selector: 'app-retention',
   imports: [PlayerName, PageHeader, StateView, StatCard, StatusChip, InrPipe, DatePipe, FormsModule, MatButtonModule, MatCheckboxModule, MatIconModule,
-    MatFormFieldModule, MatInputModule, MatTabsModule],
+    MatFormFieldModule, MatInputModule, MatTabsModule, MatTooltipModule, CdkDropListGroup, CdkDropList, CdkDrag, CdkDragPlaceholder],
   template: `
     <div class="page">
       <app-state [loading]="res.isLoading() && !res.value()" [error]="res.error()" (retry)="res.reload()">
@@ -35,24 +37,39 @@ import { PageHeader, StatCard, StateView, StatusChip, confirmAction } from '../.
           </div>
           <mat-tab-group>
             <mat-tab label="Simulator">
-              <div class="grid cols-2 tabpad">
-                <section class="card"><h2>Current squad</h2>
-                  <p class="muted small">Tick players in the order you would use the slots (slot costs apply in that order).</p>
-                  @for (p of o.squad; track p.playerId) {
-                    <div class="list-item">
-                      <mat-checkbox [checked]="picked().includes(p.playerId)" (change)="toggle(p.playerId)" [disabled]="o.hasSubmitted" />
-                      <app-pname [id]="p.playerId" [name]="p.name" [size]="24" />@if (p.isOverseas) { <span class="tag os">OS</span> }@if (!p.isCapped) { <span class="tag">Uncapped</span> }
-                      <span class="muted small">{{ p.role }}@if (p.age !== null && p.age !== undefined) { · {{ p.age }}y }</span><span class="spacer"></span>
-                      @if (p.availability !== 'Available') { <app-chip [text]="p.availability" /> }
-                      <span class="small">{{ p.currentSalary | inr }}</span>
-                      @if (auth.has(P.retentionManage) && !o.hasSubmitted) { <button mat-icon-button (click)="release(p)" aria-label="Release"><mat-icon>person_remove</mat-icon></button> }
-                    </div>
-                  }
+              <div class="ret-grid tabpad" cdkDropListGroup>
+                <section class="card"><h2>Squad <span class="muted small">· drag players to Retain</span></h2>
+                  <div class="drop" cdkDropList id="rsquad" [cdkDropListDisabled]="o.hasSubmitted" (cdkDropListDropped)="drop($event, 'squad')">
+                    @for (p of notPicked(); track p.playerId) {
+                      <div class="ret-row" cdkDrag [cdkDragData]="p.playerId">
+                        <mat-icon class="grip">drag_indicator</mat-icon>
+                        <app-pname [id]="p.playerId" [name]="p.name" [size]="26" />@if (p.isOverseas) { <span class="tag os">OS</span> }@if (!p.isCapped) { <span class="tag">Uncapped</span> }
+                        <span class="muted small">{{ p.role }}</span><span class="spacer"></span>
+                        @if (p.availability !== 'Available') { <app-chip [text]="p.availability" /> }
+                        @if (!o.hasSubmitted) { <button mat-button (click)="toggle(p.playerId)">Retain →</button> }
+                        @if (auth.has(P.retentionManage) && !o.hasSubmitted) { <button mat-icon-button (click)="release(p)" aria-label="Release now" matTooltip="Release now"><mat-icon>person_remove</mat-icon></button> }
+                        <div class="ret-row placeholder" *cdkDragPlaceholder></div>
+                      </div>
+                    } @empty { <p class="muted small">Everyone is in the Retain list.</p> }
+                  </div>
                 </section>
-                <section class="card"><h2>Simulation</h2>
+                <section class="card"><h2>Retain <span class="muted small">· top to bottom = slot order (slot costs apply in this order)</span></h2>
+                  <div class="drop retain" cdkDropList id="retain" [cdkDropListDisabled]="o.hasSubmitted" (cdkDropListDropped)="drop($event, 'retain')">
+                    @for (id of picked(); track id; let i = $index) {
+                      @let p = squadPlayer(o, id);
+                      @let slot = slotOf(id);
+                      <div class="ret-row kept" cdkDrag [cdkDragData]="id">
+                        <mat-icon class="grip">drag_indicator</mat-icon>
+                        <span class="slot">#{{ i + 1 }}</span>
+                        <app-pname [id]="id" [name]="p?.name ?? 'Player'" [size]="26" />@if (p?.isOverseas) { <span class="tag os">OS</span> }
+                        <span class="muted small">{{ slot?.category ?? '' }}</span><span class="spacer"></span>
+                        <strong>{{ slot ? (slot.cost | inr) : '' }}</strong>
+                        @if (!o.hasSubmitted) { <button mat-icon-button (click)="toggle(id)" aria-label="Do not retain"><mat-icon>close</mat-icon></button> }
+                        <div class="ret-row placeholder" *cdkDragPlaceholder></div>
+                      </div>
+                    } @empty { <p class="drop-hint"><mat-icon>south</mat-icon>Drag players here to retain them</p> }
+                  </div>
                   @if (sim(); as s) {
-                    @for (slot of s.slots; track slot.playerId) { <div class="list-item"><strong>#{{ slot.slotNumber }}</strong><app-pname [id]="slot.playerId" [name]="slot.name" [size]="24" /><span class="muted small">{{ slot.category }}</span><span class="spacer"></span>{{ slot.cost | inr }}</div> }
-                    @empty { <p class="muted">Select players to see the cost.</p> }
                     <div class="grid stats">
                       <app-stat label="Total cost" [value]="s.totalCost | inr" />
                       <app-stat label="Purse after" [value]="s.purseAfter | inr" [tone]="s.purseAfter < 0 ? 'warn' : 'good'" />
@@ -102,7 +119,18 @@ import { PageHeader, StatCard, StateView, StatusChip, confirmAction } from '../.
       </app-state>
     </div>
   `,
-  styles: `.tabpad { margin-top: 16px; }`,
+  styles: `
+    .tabpad { margin-top: 16px; }
+    .ret-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(440px, 1fr)); gap: 16px; align-items: start; }
+    .drop { min-height: 70px; border-radius: 12px; padding: 4px; transition: background 0.15s, box-shadow 0.15s; }
+    .drop.cdk-drop-list-receiving, .drop.cdk-drop-list-dragging { background: var(--team-soft); box-shadow: inset 0 0 0 2px var(--team-line); }
+    .ret-row { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-bottom: 1px solid var(--line); background: var(--card); border-radius: 10px; cursor: grab; }
+    .ret-row.kept { background: var(--card-2); border: 1px solid var(--line); margin-bottom: 4px; }
+    .ret-row.placeholder { min-height: 44px; background: var(--team-soft); border: 2px dashed var(--team-line); }
+    .grip { color: var(--muted); font-size: 18px; width: 18px; height: 18px; }
+    .slot { font-weight: 900; color: var(--team-accent); min-width: 28px; }
+    .drop-hint { display: flex; gap: 6px; align-items: center; justify-content: center; color: var(--muted); padding: 18px; border: 2px dashed var(--line); border-radius: 10px; margin: 0; }
+  `,
 })
 export class RetentionPage {
   readonly auth = inject(Auth);
@@ -117,6 +145,13 @@ export class RetentionPage {
   planName = '';
 
   constructor() {
+    // Submitted season: show the confirmed retention list in the Retain column.
+    effect(() => {
+      const o = this.res.value();
+      if (!o?.hasSubmitted || untracked(() => this.picked().length)) return;
+      const plan = o.plans.find((p: any) => p.isSubmitted);
+      if (plan) untracked(() => this.picked.set(plan.simulation.slots.map((x: any) => x.playerId)));
+    });
     effect(() => {
       const ids = this.picked();
       this.api.post<any>('retention/simulate', { playerIds: ids }).subscribe({ next: (s) => this.sim.set(s), error: (e) => this.toast.error(e) });
@@ -124,7 +159,7 @@ export class RetentionPage {
   }
 
   costs(list: number[]): string {
-    return list.map((c) => formatInr(c, 0)).join(' · ');
+    return list.length ? list.map((c) => formatInr(c, 0)).join(' · ') : 'None (retained players keep their contracts)';
   }
 
   loadPlan(plan: any): void {
@@ -133,6 +168,25 @@ export class RetentionPage {
 
   names(plan: any): string {
     return plan.simulation.slots.map((s: any) => s.name).join(', ');
+  }
+
+  /** Squad players not in the Retain list, in squad order. */
+  readonly notPicked = computed(() => (this.res.value()?.squad ?? []).filter((p: any) => !this.picked().includes(p.playerId)));
+
+  squadPlayer(o: any, id: string): any { return o.squad.find((p: any) => p.playerId === id); }
+
+  slotOf(id: string): any { return this.sim()?.slots?.find((x: any) => x.playerId === id) ?? null; }
+
+  /** Drag between Squad and Retain, or reorder inside Retain (the order decides slot costs). */
+  drop(e: CdkDragDrop<unknown>, target: 'squad' | 'retain'): void {
+    const id: string = e.item.data;
+    if (target === 'squad') { if (e.previousContainer !== e.container) this.picked.update((p) => p.filter((x) => x !== id)); return; }
+    this.picked.update((p) => {
+      const list = p.filter((x) => x !== id);
+      if (e.previousContainer === e.container) { const copy = [...p]; moveItemInArray(copy, e.previousIndex, e.currentIndex); return copy; }
+      list.splice(e.currentIndex, 0, id);
+      return list;
+    });
   }
 
   toggle(id: string): void {
