@@ -71,15 +71,29 @@ public class AuthAndSecurityTests(ApiFactory api)
         var mumId = (await owner.OkAsync(owner.GetAsync("auth/me"))).GetProperty("activeFranchiseId").GetString();
         var other = await chn.GetAsync($"finance/overview?franchiseId={mumId}");
         Assert.Equal(HttpStatusCode.Forbidden, other.Status);                                                // other franchise's finances
-        var reports = await chn.GetAsync("scouting/reports");
-        Assert.Equal(HttpStatusCode.Forbidden, reports.Status);                                             // CHN owner has no scouting perm
-        // Mumbai's internal note on the seeded trade must never reach Chennai.
-        var trades = await chn.OkAsync(chn.GetAsync("trades"));
-        var tradeId = trades.GetProperty("items")[0].GetProperty("id").GetString();
+        // Scouting reports are private to the franchise that wrote them.
+        var mumReports = await scout.OkAsync(scout.GetAsync("scouting/reports"));
+        var chnReports = await chn.OkAsync(chn.GetAsync("scouting/reports"));
+        var mumIds = mumReports.GetProperty("items").EnumerateArray().Select(r => r.GetProperty("id").GetString()).ToHashSet();
+        Assert.DoesNotContain(chnReports.GetProperty("items").EnumerateArray(), r => mumIds.Contains(r.GetProperty("id").GetString()));
+
+        // Mumbai's internal note on a trade must never reach Chennai.
+        var director = await api.LoginAsync("cricket.director.mi@demo.local");
+        var chnId = (await chn.OkAsync(chn.GetAsync("auth/me"))).GetProperty("activeFranchiseId").GetString();
+        var mumSquad = await director.OkAsync(director.GetAsync("squad"));
+        var offered = mumSquad.GetProperty("players")[0].GetProperty("playerId").GetString();
+        var draft = await director.OkAsync(director.PostAsync("trades", new
+        {
+            terms = new { counterpartyFranchiseId = chnId, playersOffered = new[] { offered }, playersRequested = Array.Empty<string>(), cashConsideration = 0, cashPayerFranchiseId = (string?)null, conditions = (string?)null },
+            submit = true, message = "Isolation check",
+        }));
+        var tradeId = draft.GetProperty("id").GetString();
+        await director.OkAsync(director.PostAsync($"trades/{tradeId}/messages", new { message = "Internal: walk away above 2 Cr", @internal = true }));
         var detail = await chn.OkAsync(chn.GetAsync($"trades/{tradeId}"));
         Assert.DoesNotContain(detail.GetProperty("negotiations").EnumerateArray(), n => n.GetProperty("isInternal").GetBoolean());
-        var mine = await owner.OkAsync(owner.GetAsync($"trades/{tradeId}"));
+        var mine = await director.OkAsync(director.GetAsync($"trades/{tradeId}"));
         Assert.Contains(mine.GetProperty("negotiations").EnumerateArray(), n => n.GetProperty("isInternal").GetBoolean());
+        await director.OkAsync(director.PostAsync($"trades/{tradeId}/withdraw", new { message = "Test done" }));
     }
 
     [Fact]
@@ -187,8 +201,10 @@ public class TradeLifecycleTests(ApiFactory api)
         Assert.Equal(mumId, player.GetProperty("franchise").GetProperty("id").GetString());
         var ledger = await mumOwner.OkAsync(mumOwner.GetAsync("finance/transactions?category=TradeConsideration"));
         Assert.Contains(ledger.GetProperty("items").EnumerateArray(), t => t.GetProperty("amount").GetDecimal() == 5_000_000 && t.GetProperty("direction").GetString() == "Debit");
-        var salaryIn = incoming.GetProperty("price").GetDecimal();
-        var salaryOut = outgoing.GetProperty("price").GetDecimal();
+        // Real players may have no recorded price (null): it then moves nothing.
+        static decimal Price(System.Text.Json.JsonElement p) => p.GetProperty("price") is { ValueKind: System.Text.Json.JsonValueKind.Number } x ? x.GetDecimal() : 0m;
+        var salaryIn = Price(incoming);
+        var salaryOut = Price(outgoing);
         Assert.Equal(purseBefore + salaryOut - salaryIn, after.GetProperty("purseRemaining").GetDecimal());
     }
 
@@ -373,7 +389,7 @@ public class SquadRetentionFinanceTests(ApiFactory api)
     public async Task Statistics_carry_their_source_and_analysis_is_computed()
     {
         var analyst = await api.LoginAsync("analyst.mi@demo.local");
-        var players = await analyst.OkAsync(analyst.GetAsync("players?sort=runs&desc=true&pageSize=1"));
+        var players = await analyst.OkAsync(analyst.GetAsync("players?search=(Demo)&sort=runs&desc=true&pageSize=1"));
         var id = players.GetProperty("items")[0].GetProperty("id").GetString();
         var stats = await analyst.OkAsync(analyst.GetAsync($"players/{id}/statistics"));
         Assert.All(stats.GetProperty("careers").EnumerateArray(), c => Assert.Contains("synthetic", c.GetProperty("dataSource").GetString()));

@@ -75,6 +75,28 @@ public class RetentionRecord : Entity, IFranchiseOwned
     public DateTime CreatedAt { get; set; }
 }
 
+public enum ReplacementStatus { Pending, Approved, Rejected, Cancelled }
+
+/// <summary>A franchise's request to replace an injured squad player with an unsigned player (league approval).</summary>
+public class ReplacementRequest : Entity, IFranchiseOwned
+{
+    public Guid FranchiseId { get; set; }
+    public Franchise? Franchise { get; set; }
+    public int SeasonId { get; set; }
+    public Guid InjuredPlayerId { get; set; }
+    public Player? InjuredPlayer { get; set; }
+    public Guid ReplacementPlayerId { get; set; }
+    public Player? ReplacementPlayer { get; set; }
+    public decimal Fee { get; set; }
+    public string? Reason { get; set; }
+    public ReplacementStatus Status { get; set; }
+    public DateTime RequestedAt { get; set; }
+    public Guid? RequestedBy { get; set; }
+    public string? DecisionNote { get; set; }
+    public DateTime? DecidedAt { get; set; }
+    public Guid? DecidedBy { get; set; }
+}
+
 public enum ReleaseStatus { Released, Cancelled }
 
 public class ReleaseRecord : Entity, IFranchiseOwned

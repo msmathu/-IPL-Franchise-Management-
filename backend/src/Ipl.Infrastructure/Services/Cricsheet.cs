@@ -26,6 +26,8 @@ public class CricsheetOptions
     public int AutoImportDays { get; set; }
     /// <summary>Optional folder with already-downloaded "{dataset}_json.zip" files (for servers without internet access).</summary>
     public string? LocalFolder { get; set; }
+    /// <summary>Download free player photos (Wikimedia Commons) after every successful import.</summary>
+    public bool RefreshPhotosAfterImport { get; set; } = true;
 }
 
 public static class Cricsheet
@@ -600,6 +602,13 @@ public class CricsheetImporter(AppDbContext db, StatisticsService stats, IAuditS
             await tx.CommitAsync(ct);
         });
 
+        if (archives.TryGetValue("ipl", out var iplArchive) && competitions.TryGetValue("IPL", out var iplCompetition))
+        {
+            stage("Building scorecards, leaderboards and match-ups");
+            var built = await CricsheetArchive.RebuildAsync(db, Entries(iplArchive), iplCompetition, ct);
+            log.LogInformation("IPL archive: {Cards} scorecards added, {People} person-seasons, {Matchups} batter-bowler match-ups", built.Scorecards, built.People, built.Matchups);
+        }
+
         stage("Recalculating statistics");
         if (touched.Count > 0) await stats.RecalculateAsync(touched, ct);
 
@@ -663,7 +672,7 @@ public class CricsheetImporter(AppDbContext db, StatisticsService stats, IAuditS
 }
 
 /// <summary>Runs one import at a time in the background and keeps its progress for the status endpoint.</summary>
-public class CricsheetImportRunner(IServiceScopeFactory scopes, IHostApplicationLifetime lifetime, CricsheetOptions options, ILogger<CricsheetImportRunner> log)
+public class CricsheetImportRunner(IServiceScopeFactory scopes, IHostApplicationLifetime lifetime, CricsheetOptions options, PhotoImportRunner photos, ILogger<CricsheetImportRunner> log)
 {
     private readonly SemaphoreSlim gate = new(1, 1);
     private volatile string? stage;
@@ -682,6 +691,8 @@ public class CricsheetImportRunner(IServiceScopeFactory scopes, IHostApplication
             {
                 using var scope = scopes.CreateScope();
                 await scope.ServiceProvider.GetRequiredService<CricsheetImporter>().RunAsync(s => stage = s, lifetime.ApplicationStopping);
+                // Newly linked players can now be matched to free photos: refresh them after every successful import.
+                if (options.RefreshPhotosAfterImport && photos.TryStart()) log.LogInformation("Photo refresh started after the Cricsheet import");
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {

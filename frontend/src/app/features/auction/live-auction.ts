@@ -1,4 +1,4 @@
-import { DatePipe } from '@angular/common';
+import { DatePipe, DecimalPipe } from '@angular/common';
 import { Component, OnDestroy, computed, inject, input, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { rxResource } from '../../core/resource';
@@ -7,7 +7,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { RouterLink } from '@angular/router';
-import { filter, interval } from 'rxjs';
+import { filter, interval, of } from 'rxjs';
 import { Api } from '../../core/api';
 import { Auth } from '../../core/auth';
 import { InrPipe, P, Realtime, Toast, formatInr } from '../../core/services';
@@ -15,7 +15,7 @@ import { Monogram, PageHeader, PlayerAvatar, StateView, StatusChip, confirmActio
 
 @Component({
   selector: 'app-live-auction',
-  imports: [PageHeader, StateView, StatusChip, Monogram, PlayerAvatar, RouterLink, InrPipe, DatePipe, MatButtonModule, MatIconModule, MatProgressBarModule],
+  imports: [PageHeader, StateView, StatusChip, Monogram, PlayerAvatar, RouterLink, InrPipe, DatePipe, DecimalPipe, MatButtonModule, MatIconModule, MatProgressBarModule],
   template: `
     <div class="page">
       <app-state [loading]="res.isLoading() && !live()" [error]="res.error()" (retry)="res.reload()">
@@ -72,6 +72,26 @@ import { Monogram, PageHeader, PlayerAvatar, StateView, StatusChip, confirmActio
               }
               @if (lastEvent()) { <p class="event">{{ lastEvent() }}</p> }
             </section>
+            @if (advice.value(); as ad) {
+              <section class="card assistant" [attr.data-verdict]="ad.verdict">
+                <h2><mat-icon>psychology</mat-icon>AI auction assistant <span class="small muted">· {{ ad.playerName }}</span></h2>
+                <div class="verdict"><span class="vtag">{{ verdictLabel(ad.verdict) }}</span><strong>{{ ad.headline }}</strong></div>
+                <div class="nums">
+                  <div><b>Your stop price</b><span>{{ ad.stopAt | inr }}</span></div>
+                  <div><b>Model value</b><span>{{ ad.modelLow | inr }} – {{ ad.modelHigh | inr }}</span></div>
+                  <div><b>Rating</b><span>{{ ad.rating | number: '1.0-0' }}/100 · {{ ad.dataConfidence }} data</span></div>
+                  <div><b>Squad fit</b><span>{{ ad.fitScore >= 4 ? 'Priority' : ad.fitScore >= 2 ? 'Good' : 'Depth only' }}</span></div>
+                  <div><b>Rivals able to bid</b><span>{{ ad.rivalsAbleToBid }}</span></div>
+                  <div><b>Your max bid allowed</b><span>{{ ad.maxBidAllowed | inr }}</span></div>
+                </div>
+                @for (r of ad.reasons; track r) { <div class="why"><mat-icon>check_circle</mat-icon>{{ r }}</div> }
+                @for (c of ad.cautions; track c) { <div class="why warn"><mat-icon>warning</mat-icon>{{ c }}</div> }
+                @if (ad.alternatives.length) {
+                  <p class="small muted">Similar players still to come: @for (x of ad.alternatives; track x.playerId) { <a [routerLink]="['/players', x.playerId]">{{ x.name }}</a> ({{ x.basePrice | inr }} base){{ $last ? '' : ', ' }} }</p>
+                }
+                <p class="small muted">{{ ad.disclaimer }}</p>
+              </section>
+            }
             <section class="card"><h2>Bidding history</h2>
               @for (b of a.bids; track b.id) { <div class="list-item"><strong>{{ b.franchise }}</strong><span class="spacer"></span>{{ b.amount | inr }}<span class="small muted">{{ b.placedAt | date: 'HH:mm:ss' }}</span></div> }
               @empty { <p class="muted">No bids yet.</p> }
@@ -94,6 +114,19 @@ import { Monogram, PageHeader, PlayerAvatar, StateView, StatusChip, confirmActio
     </div>
   `,
   styles: `
+    .assistant { border-left: 4px solid var(--team-accent); }
+    .assistant h2 { display: flex; align-items: center; gap: 8px; }
+    .assistant .verdict { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; font-size: 15px; }
+    .assistant .vtag { padding: 3px 10px; border-radius: 6px; font-weight: 900; font-size: 12px; letter-spacing: 0.06em; background: #475569; color: #fff; }
+    .assistant[data-verdict='Bid'] .vtag, .assistant[data-verdict='Leading'] .vtag { background: #16a34a; }
+    .assistant[data-verdict='Consider'] .vtag { background: #d97706; }
+    .assistant[data-verdict='Pass'] .vtag, .assistant[data-verdict='CannotBid'] .vtag { background: #dc2626; }
+    .assistant .nums { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 10px; }
+    .assistant .nums b { display: block; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+    .assistant .nums span { font-weight: 800; }
+    .assistant .why { display: flex; gap: 6px; align-items: center; font-size: 13px; margin: 3px 0; }
+    .assistant .why mat-icon { font-size: 17px; width: 17px; height: 17px; color: var(--good); }
+    .assistant .why.warn mat-icon { color: var(--warn); }
     .live { grid-template-columns: 2fr 1fr; }
     @media (max-width: 1000px) { .live { grid-template-columns: 1fr; } }
     .block { display: flex; flex-direction: column; gap: 16px; border: 1px solid rgba(56, 189, 248, 0.35); }
@@ -122,6 +155,17 @@ export class LiveAuctionPage implements OnDestroy {
   private readonly realtime = inject(Realtime);
   readonly res = rxResource({ params: () => this.id(), stream: ({ params }) => this.api.get<any>(`auctions/${params}/live`) });
   readonly live = computed(() => this.res.value());
+  /** Bid advice for the player on the block (franchise users with valuation access); refreshed on every bid. */
+  readonly advice = rxResource({
+    params: () => {
+      const lot = this.live()?.currentLot;
+      return lot && this.auth.activeFranchise() && this.auth.has(P.valuationRead) ? { lot: lot.id, bid: lot.currentBid, leader: lot.currentBidFranchiseId } : null;
+    },
+    stream: ({ params }) => (params ? this.api.get<any>(`auctions/${this.id()}/assistant`) : of(null)),
+  });
+  verdictLabel(v: string): string {
+    return ({ Bid: 'BID', Consider: 'MAYBE', Pass: 'PASS', Leading: 'LEADING', CannotBid: 'CAN\'T BID' } as Record<string, string>)[v] ?? v;
+  }
   readonly busy = signal(false);
   readonly lastEvent = signal<string | null>(null);
   private readonly now = signal(Date.now());

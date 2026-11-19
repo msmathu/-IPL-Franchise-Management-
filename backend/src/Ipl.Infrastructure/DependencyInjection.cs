@@ -66,14 +66,18 @@ public static class DependencyInjection
         services.AddScoped<PlayerService>();
         services.AddScoped<StatisticsService>();
         services.AddScoped<SeasonCentreService>();
+        services.AddScoped<RecordsService>();
         services.AddScoped<RatingService>();
         services.AddScoped<ValuationService>();
         services.AddScoped<ComparisonService>();
         services.AddScoped<RecommendationService>();
         services.AddScoped<TradingService>();
         services.AddScoped<RetentionService>();
+        services.AddScoped<ReplacementService>();
+        services.AddScoped<OfficialSquadService>();
         services.AddScoped<SquadService>();
         services.AddScoped<AuctionService>();
+        services.AddScoped<AuctionAssistantService>();
         services.AddScoped<ScoutingService>();
         services.AddScoped<DocumentService>();
         services.AddScoped<FinanceService>();

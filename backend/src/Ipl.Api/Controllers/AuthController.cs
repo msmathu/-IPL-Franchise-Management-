@@ -120,7 +120,7 @@ public class AuthController(AuthService auth, ICurrentUser me) : ApiControllerBa
 public class UsersController(UserAdminService users) : ApiControllerBase
 {
     [HttpGet]
-    public Task<PagedResult<UserListItemDto>> List([FromQuery] Guid? franchiseId, [FromQuery] string? search, [FromQuery] PageRequest page, CancellationToken ct) =>
+    public Task<PagedResult<UserListItemDto>> List([FromQuery] Guid? franchiseId, [FromQuery] string? search, [FromQuery(Name = "")] PageRequest page, CancellationToken ct) =>
         users.ListAsync(franchiseId, search, page, ct);
 
     [HttpGet("roles")]

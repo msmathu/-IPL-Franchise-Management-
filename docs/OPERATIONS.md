@@ -15,6 +15,7 @@ Settings come from `appsettings.json`, `appsettings.{Environment}.json`, user-se
 | `Database:InitializeOnStartup` / `Migrate` | true / true | Applies migrations, syncs roles/permissions, enables read-committed snapshot |
 | `Cricsheet:Datasets` | `["ipl", "t20s_male"]` | Cricsheet archives to import (IPL and men's T20 internationals) |
 | `Cricsheet:AutoImportDays` | 7 | Re-import automatically every N days; 0 = only from the *Player Statistics* page |
+| `Cricsheet:RefreshPhotosAfterImport` | true | Download free player photos after each successful import |
 | `Cricsheet:LocalFolder` | empty | Folder with pre-downloaded `{dataset}_json.zip` files, for servers without internet access |
 | `Media:Folder` | `App_Data/media` | Downloaded player photos (served at `/media`); keep it on persistent storage and back it up |
 | `DemoData:Enabled` | false (true in Development) | Creates the fictional demo league on an **empty** database |

@@ -25,7 +25,7 @@ public class FranchisesController(FranchiseService franchises, SquadService squa
     public Task<SquadDto> Squad(Guid id, CancellationToken ct) => squads.GetAsync(id, ct);
 
     [HttpGet("{id:guid}/activity"), HasPermission(Perm.AuditRead)]
-    public Task<PagedResult<FranchiseActivityDto>> Activity(Guid id, [FromQuery] PageRequest page, CancellationToken ct) => franchises.ActivityAsync(id, page, ct);
+    public Task<PagedResult<FranchiseActivityDto>> Activity(Guid id, [FromQuery(Name = "")] PageRequest page, CancellationToken ct) => franchises.ActivityAsync(id, page, ct);
 
     [HttpPost, HasPermission(Perm.FranchisesManage)]
     public async Task<object> Create(SaveFranchiseRequest req, CancellationToken ct) => new { id = await franchises.CreateAsync(req, ct) };
@@ -55,7 +55,7 @@ public class PlayersController(PlayerService players, StatisticsService stats, R
     public Task<object> Lookups(CancellationToken ct) => players.LookupsAsync(ct);
 
     [HttpGet, HasPermission(Perm.PlayersRead)]
-    public Task<PagedResult<PlayerListItemDto>> Search([FromQuery] PlayerSearchRequest filter, [FromQuery] PageRequest page, CancellationToken ct) =>
+    public Task<PagedResult<PlayerListItemDto>> Search([FromQuery] PlayerSearchRequest filter, [FromQuery(Name = "")] PageRequest page, CancellationToken ct) =>
         players.SearchAsync(filter, page, ct);
 
     [HttpGet("{id:guid}"), HasPermission(Perm.PlayersRead)]
@@ -152,8 +152,26 @@ public record CricsheetLinkRequest(string? CricsheetId);
 
 /// <summary>Results and points tables calculated from imported match data.</summary>
 [Route("api/v{version:apiVersion}/season-centre")]
-public class SeasonCentreController(SeasonCentreService season) : ApiControllerBase
+public class SeasonCentreController(SeasonCentreService season, RecordsService records) : ApiControllerBase
 {
+    [HttpGet("matches/{id:guid}/scorecard"), HasPermission(Perm.StatsRead)]
+    public Task<ScorecardDto> Scorecard(Guid id, CancellationToken ct) => records.ScorecardAsync(id, ct);
+
+    [HttpGet("{year:int}/leaders"), HasPermission(Perm.StatsRead)]
+    public Task<IReadOnlyList<LeaderBoardDto>> Leaders(int year, CancellationToken ct) => records.LeadersAsync(year, ct);
+
+    [HttpGet("records"), HasPermission(Perm.StatsRead)]
+    public Task<RecordsDto> Records(CancellationToken ct) => records.RecordsAsync(ct);
+
+    [HttpGet("head-to-head"), HasPermission(Perm.StatsRead)]
+    public Task<HeadToHeadDto> HeadToHead([FromQuery] string team1, [FromQuery] string team2, CancellationToken ct) => records.HeadToHeadAsync(team1, team2, ct);
+
+    [HttpGet("matchup"), HasPermission(Perm.StatsRead)]
+    public Task<MatchupDto?> Matchup([FromQuery] Guid batter, [FromQuery] Guid bowler, CancellationToken ct) => records.MatchupAsync(batter, bowler, ct);
+
+    [HttpGet("players/{id:guid}/matchups"), HasPermission(Perm.StatsRead)]
+    public Task<PlayerMatchupsDto> PlayerMatchups(Guid id, CancellationToken ct) => records.PlayerMatchupsAsync(id, ct);
+
     [HttpGet("years"), HasPermission(Perm.StatsRead)]
     public Task<SeasonCentreYearsDto> Years(CancellationToken ct) => season.YearsAsync(ct);
 

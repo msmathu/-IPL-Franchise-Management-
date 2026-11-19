@@ -180,3 +180,4 @@ img.monogram.logo { object-fit: contain; background: #fff; padding: 2px; }
 /* Top bar text follows the team colour (readable on yellow, red, blue...). */
 .topbar .mat-mdc-button, .topbar .mat-mdc-icon-button, .topbar .mat-mdc-button .mat-icon { color: var(--team-ink) !important; }
 [data-team='off'] .topbar .mat-mdc-button, [data-team='off'] .topbar .mat-mdc-icon-button, [data-team='off'] .topbar .mat-mdc-button .mat-icon { color: var(--text) !important; }
+.team-hero .hero-btn { color: inherit !important; border-color: currentColor !important; --mdc-outlined-button-label-text-color: currentColor; }

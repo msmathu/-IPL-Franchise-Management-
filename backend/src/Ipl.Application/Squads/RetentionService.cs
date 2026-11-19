@@ -125,15 +125,18 @@ public class RetentionService(IAppDbContext db, ICurrentUser me, IClock clock, I
             if (!sim.IsValid) throw new DomainException("retention.invalid", string.Join(" ", sim.Violations));
 
             var now = clock.UtcNow;
-            db.RetentionRecords.RemoveRange(plan.Records);
-            plan.Records.Clear();
+            // Confirm the plan's draft rows in place. (Deleting them and clearing the collection made EF update rows it had
+            // just deleted, which surfaced as a false concurrency conflict.)
+            var drafts = plan.Records.ToDictionary(x => x.PlayerId);
             foreach (var slot in sim.Slots)
             {
-                plan.Records.Add(new RetentionRecord
-                {
-                    SeasonId = season.Id, FranchiseId = fid, PlayerId = slot.PlayerId, Category = Enum.Parse<RetentionCategory>(slot.Category),
-                    SlotNumber = slot.SlotNumber, Cost = slot.Cost, Status = RetentionStatus.Confirmed, CreatedAt = now,
-                });
+                if (!drafts.TryGetValue(slot.PlayerId, out var rec))
+                    plan.Records.Add(rec = new RetentionRecord { SeasonId = season.Id, FranchiseId = fid, PlayerId = slot.PlayerId });
+                rec.Category = Enum.Parse<RetentionCategory>(slot.Category);
+                rec.SlotNumber = slot.SlotNumber;
+                rec.Cost = slot.Cost;
+                rec.Status = RetentionStatus.Confirmed;
+                rec.CreatedAt = now;
                 if (slot.Cost > 0)
                     await Ledger.PostAsync(db, fid, season.Id, FinanceCategory.AuctionPurse, FinanceDirection.Debit, slot.Cost,
                         $"Retention slot {slot.SlotNumber}: {slot.Name}", "RetentionPlan", plan.Id.ToString(), $"retention:{season.Id}:{slot.PlayerId}", me.UserId, now, ct);

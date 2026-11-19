@@ -16,8 +16,10 @@ dotnet test
   - a live auction (wrong amounts, idempotent retries, a two-franchise bid race with exactly one winner, sale booking, unsold, reopen, complete, SignalR events)
   - retention submission (costs, single submission, release of the rest), Playing XI rule validation, finance approval thresholds and duplicates
   - PDF, Excel and CSV exports and dashboard sections; data provenance in statistics
+  - injury replacements (not injured → refused, wrong role → forbidden, league approval swaps the players once), season centre and records endpoints
+- **Cricsheet unit tests:** scorecard name matching (initials, spelling variants, ambiguous names left unlinked) and a hand-written match checking batting, bowling, extras, fall of wickets, catches and batter-v-bowler counts.
 
-**Current status:** the tests were written against the earlier fictional league (seeded trade, synthetic statistics and prices for every player). After switching to real squads, several integration tests need updating (account names were updated; scenarios that relied on seeded trades, prices or statistics for squad players were not). Unit tests are unaffected.
+**Current status:** all 55 tests pass (30 s). They cover the original workflows plus Cricsheet name matching and scorecards (unit), injury replacements with league approval, and the season-centre/records endpoints (integration). Two long-standing bugs found by these tests were fixed: submitting retentions and accepting trades failed with a false "changed at the same time" error (entity ids are client-generated, so new child rows must be inserted, not updated).
 
 ## Manual / browser checks
 

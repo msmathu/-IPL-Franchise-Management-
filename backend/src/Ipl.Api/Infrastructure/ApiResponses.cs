@@ -54,6 +54,8 @@ public class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> log, IHostEn
         };
         if (status >= 500) log.LogError(ex, "Unhandled error {TraceId}", traceId);
         else if (status != 499) log.LogInformation("Request failed {Status} {Code}: {Message}", status, error.Code, error.Message);
+        if (ex is DbUpdateConcurrencyException dce)
+            log.LogWarning("Concurrency conflict on {Entities} {TraceId}", string.Join(", ", dce.Entries.Select(e => $"{e.Metadata.ClrType.Name}:{e.State}")), traceId);
         ctx.Response.StatusCode = status;
         await ctx.Response.WriteAsJsonAsync(new ApiResponse<object>(false, null, error), ct);
         return true;

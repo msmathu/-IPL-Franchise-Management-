@@ -41,6 +41,11 @@ public static class RuleKeys
     /// <summary>Whether a traded player's contract salary moves between purses.</summary>
     public const string TradeSalaryAffectsPurse = "trade.salary_affects_purse";
 
+    // Injury replacements
+    public const string ReplacementsEnabled = "replacement.enabled";
+    public const string ReplacementFeeCap = "replacement.fee_capped_at_injured_fee";
+    public const string ReplacementAffectsPurse = "replacement.fee_affects_purse";
+
     public static readonly (string Key, RuleValueType Type, string Category, string Description)[] Definitions =
     [
         (MaxSquadSize, RuleValueType.Integer, "Squad", "Maximum players in a squad"),
@@ -68,6 +73,9 @@ public static class RuleKeys
         (TradeRequiresPlayerConsent, RuleValueType.Boolean, "Trading", "Each traded player must consent"),
         (TradeConsiderationAffectsPurse, RuleValueType.Boolean, "Trading", "Trade consideration is added to/removed from the auction purse"),
         (TradeSalaryAffectsPurse, RuleValueType.Boolean, "Trading", "Traded players' contract salaries move between auction purses"),
+        (ReplacementsEnabled, RuleValueType.Boolean, "Replacements", "Injured squad players may be replaced (league approval)"),
+        (ReplacementFeeCap, RuleValueType.Boolean, "Replacements", "A replacement's fee may not exceed the injured player's fee"),
+        (ReplacementAffectsPurse, RuleValueType.Boolean, "Replacements", "The replacement fee is deducted from the auction purse"),
     ];
 }
 

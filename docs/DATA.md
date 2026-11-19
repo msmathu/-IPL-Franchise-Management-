@@ -16,6 +16,12 @@ With `DemoData:Enabled=true` on an empty database:
 
 **Team logos are not downloaded**: IPL franchise logos are trademarks and are not freely licensed (Wikipedia only uses them under "fair use"). Franchises show their short code on the team colour. To show a logo you have permission to use, save its https URL in *Franchise → Edit → Logo URL*. Player photos can also be set by hand (https URL you have the rights to use) in *Player → Career & availability → Photo*; broken links fall back to the badge.
 
+## Official squad announcements (retentions, releases, trades)
+
+Squads do not change by themselves: real signings, trades and releases are recorded in the app. For the league's official announcement (for example the retention-day media advisory), a league administrator posts it to `POST /api/v1/league/official-squads` (`seasons.manage`): the confirmed trades, each team's retained players and remaining purse, and the season purse. In one transaction the app moves traded players (squad rows marked *Trade* with the fee, team history), releases everyone not retained (release records, back to the auction pool), stores a confirmed retention list per team and sets each purse through the ledger. Everything is audited.
+
+The current season uses the **official IPL 2027 retention list** (IPL media advisory, iplt20.com, 18 Nov 2026): 184 retained players (55 overseas), 89 released, 14 confirmed trades (fees as reported by CricTracker), purse ₹130 Cr per team with the official remaining purses. Six players missing from the earlier 2026 data were added (Pat Cummins, Josh Hazlewood, Josh Inglis, Nathan Ellis, Harshit Rana, Yash Dayal) with public profile facts only. A database backup taken before the change is in SQL Server's default backup folder (`IplFranchise_before_ipl2027_squads_*.bak`).
+
 ## Statistics from Cricsheet (ball-by-ball)
 
 [Cricsheet](https://cricsheet.org) publishes ball-by-ball records of every IPL match since 2008 and of international matches under the **Open Data Commons Attribution License (ODC-BY 1.0)**: free to use, including commercially, as long as Cricsheet is credited. Every statistic loaded from it carries the source "Cricsheet (cricsheet.org), ODC-BY 1.0", which the statistics screens show.
@@ -25,6 +31,8 @@ With `DemoData:Enabled=true` on an empty database:
 1. **Links squad players to Cricsheet people.** Cricsheet uses scorecard names ("V Kohli", "SA Yadav"), so a link needs the name to fit (surname plus initials, small spelling differences) **and** the person to have played for the player's current franchise in the last three IPL seasons (overseas players: for their country in T20Is). Exact full-name matches of recent players are also accepted, plus a short hand-checked list (`RealSquads.CricsheetIds`). Anything ambiguous is left unlinked. A link can be set or removed by hand on the player profile (*Career & availability → Cricsheet link*).
 2. **Loads every match with a linked player** into `ipl.Matches` / `ipl.PlayerMatchStatistics` (runs, balls, boundaries, dismissals, phases, wickets, economy, dots, maidens, catches, stumpings, run-outs). Re-runs only add what is new.
 3. **Recalculates** season and career totals, so ratings, valuations, comparisons, form and team strength use the real numbers.
+4. **Refreshes player photos** from Wikimedia Commons (`Cricsheet:RefreshPhotosAfterImport`, on by default), so newly linked players get a photo without anyone pressing the button.
+5. **Rebuilds scorecards, season totals for everyone who played and batter-v-bowler records** (IPL), used by the scorecard, leaders, records, head-to-head and match-up screens.
 
 Known limits:
 - Players who have not played an IPL match or a T20I yet have no data (about 20 uncapped squad players); they're listed on the Player Statistics page.

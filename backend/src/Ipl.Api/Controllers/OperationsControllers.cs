@@ -28,7 +28,7 @@ public class ScoutingController(ScoutingService scouting) : ApiControllerBase
     public async Task<object> UpdateAssignment(Guid id, SaveAssignmentRequest req, CancellationToken ct) => new { id = await scouting.SaveAssignmentAsync(id, req, ct) };
 
     [HttpGet("reports")]
-    public Task<PagedResult<ReportListItemDto>> Reports([FromQuery] Guid? playerId, [FromQuery] string? status, [FromQuery] PageRequest page, CancellationToken ct) =>
+    public Task<PagedResult<ReportListItemDto>> Reports([FromQuery] Guid? playerId, [FromQuery] string? status, [FromQuery(Name = "")] PageRequest page, CancellationToken ct) =>
         scouting.ReportsAsync(playerId, status, page, ct);
 
     [HttpGet("reports/{id:guid}")]
@@ -74,7 +74,7 @@ public class FinanceController(FinanceService finance) : ApiControllerBase
     public Task<FinanceOverviewDto> Overview([FromQuery] Guid? franchiseId, CancellationToken ct) => finance.OverviewAsync(franchiseId, ct);
 
     [HttpGet("transactions"), HasPermission(Perm.FinanceRead)]
-    public Task<PagedResult<TransactionDto>> Transactions([FromQuery] Guid? franchiseId, [FromQuery] string? category, [FromQuery] PageRequest page, CancellationToken ct) =>
+    public Task<PagedResult<TransactionDto>> Transactions([FromQuery] Guid? franchiseId, [FromQuery] string? category, [FromQuery(Name = "")] PageRequest page, CancellationToken ct) =>
         finance.TransactionsAsync(franchiseId, category, page, ct);
 
     [HttpPost("expenses"), HasPermission(Perm.FinanceManage)]
@@ -124,7 +124,7 @@ public class MessagesController(MessagingService messages) : ApiControllerBase
 public class NotificationsController(NotificationQueryService notifications) : ApiControllerBase
 {
     [HttpGet]
-    public Task<PagedResult<NotificationDto>> List([FromQuery] bool unreadOnly, [FromQuery] PageRequest page, CancellationToken ct) => notifications.ListAsync(unreadOnly, page, ct);
+    public Task<PagedResult<NotificationDto>> List([FromQuery] bool unreadOnly, [FromQuery(Name = "")] PageRequest page, CancellationToken ct) => notifications.ListAsync(unreadOnly, page, ct);
 
     [HttpGet("unread-count")]
     public async Task<object> Unread(CancellationToken ct) => new { count = await notifications.UnreadCountAsync(ct) };
@@ -193,7 +193,7 @@ public class AuditController(AuditQueryService audit) : ApiControllerBase
 {
     [HttpGet, HasPermission(Perm.AuditRead)]
     public Task<PagedResult<AuditLogDto>> List([FromQuery] string? action, [FromQuery] string? entityType, [FromQuery] string? user, [FromQuery] DateTime? from,
-        [FromQuery] DateTime? to, [FromQuery] Guid? franchiseId, [FromQuery] PageRequest page, CancellationToken ct) =>
+        [FromQuery] DateTime? to, [FromQuery] Guid? franchiseId, [FromQuery(Name = "")] PageRequest page, CancellationToken ct) =>
         audit.ListAsync(action, entityType, user, from, to, franchiseId, page, ct);
 }
 

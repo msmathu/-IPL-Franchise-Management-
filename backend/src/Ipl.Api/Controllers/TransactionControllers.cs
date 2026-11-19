@@ -17,7 +17,7 @@ public record TradeValueRequest(IReadOnlyList<Guid> Gives, IReadOnlyList<Guid> R
 public class TradesController(TradingService trades, RecommendationService recommendations) : ApiControllerBase
 {
     [HttpGet, HasPermission(Perm.TradesRead)]
-    public Task<PagedResult<TradeSummaryDto>> List([FromQuery] string? status, [FromQuery] Guid? franchiseId, [FromQuery] PageRequest page, CancellationToken ct) =>
+    public Task<PagedResult<TradeSummaryDto>> List([FromQuery] string? status, [FromQuery] Guid? franchiseId, [FromQuery(Name = "")] PageRequest page, CancellationToken ct) =>
         trades.ListAsync(status, franchiseId, page, ct);
 
     [HttpGet("{id:guid}"), HasPermission(Perm.TradesRead)]
@@ -162,4 +162,42 @@ public class AuctionsController(AuctionService auctions) : ApiControllerBase
 
     [HttpGet("{id:guid}/results"), HasPermission(Perm.AuctionsRead)]
     public Task<AuctionResultsDto> Results(Guid id, CancellationToken ct) => auctions.ResultsAsync(id, ct);
+}
+
+[Route("api/v{version:apiVersion}/replacements")]
+public class ReplacementsController(ReplacementService replacements) : ApiControllerBase
+{
+    [HttpGet, HasPermission(Perm.SquadRead)]
+    public Task<IReadOnlyList<ReplacementRequestDto>> List(CancellationToken ct) => replacements.ListAsync(ct);
+
+    [HttpGet("rules"), HasPermission(Perm.SquadRead)]
+    public Task<ReplacementRulesDto> Rules(CancellationToken ct) => replacements.RulesAsync(ct);
+
+    [HttpPost, HasPermission(Perm.SquadManage)]
+    public async Task<object> Create(CreateReplacementRequest req, CancellationToken ct) => new { id = await replacements.CreateAsync(req, ct) };
+
+    [HttpPost("{id:guid}/cancel"), HasPermission(Perm.SquadManage)]
+    public async Task<IActionResult> Cancel(Guid id, CancellationToken ct) { await replacements.CancelAsync(id, ct); return NoContent(); }
+
+    [HttpPost("{id:guid}/approve"), HasPermission(Perm.TradesLeagueApprove)]
+    public async Task<IActionResult> Approve(Guid id, ReplacementDecision req, CancellationToken ct) { await replacements.ApproveAsync(id, req.Note, ct); return NoContent(); }
+
+    [HttpPost("{id:guid}/reject"), HasPermission(Perm.TradesLeagueApprove)]
+    public async Task<IActionResult> Reject(Guid id, ReplacementDecision req, CancellationToken ct) { await replacements.RejectAsync(id, req.Note, ct); return NoContent(); }
+}
+
+[Route("api/v{version:apiVersion}/auctions")]
+public class AuctionAssistantController(AuctionAssistantService assistant) : ApiControllerBase
+{
+    /// <summary>Bid advice for the player on the block, for the signed-in franchise (model-based).</summary>
+    [HttpGet("{id:guid}/assistant"), HasPermission(Perm.ValuationRead)]
+    public Task<AuctionAdviceDto?> Advice(Guid id, CancellationToken ct) => assistant.AdviseAsync(id, ct);
+}
+
+[Route("api/v{version:apiVersion}/league/official-squads")]
+public class OfficialSquadsController(OfficialSquadService official) : ApiControllerBase
+{
+    /// <summary>Applies the league's official squad announcement (trades, retained lists, purses) for the current season.</summary>
+    [HttpPost, HasPermission(Perm.SeasonsManage)]
+    public Task<OfficialSquadUpdateResult> Apply(OfficialSquadUpdateRequest req, CancellationToken ct) => official.ApplyAsync(req, ct);
 }

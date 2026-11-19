@@ -26,7 +26,6 @@ namespace Ipl.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Ipl.Domain.AuctionBid", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<decimal>("Amount")
@@ -63,7 +62,6 @@ namespace Ipl.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Ipl.Domain.AuctionEvent", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<bool>("AllowReopenUnsold")
@@ -131,7 +129,6 @@ namespace Ipl.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Ipl.Domain.AuctionPlayer", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid>("AuctionEventId")
@@ -200,7 +197,6 @@ namespace Ipl.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Ipl.Domain.AuctionResult", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("At")
@@ -297,10 +293,65 @@ namespace Ipl.Infrastructure.Persistence.Migrations
                     b.ToTable("AuditLogs", "ipl");
                 });
 
+            modelBuilder.Entity("Ipl.Domain.BatterBowlerMatchup", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Balls")
+                        .HasColumnType("int");
+
+                    b.Property<string>("BatterId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("nvarchar(16)");
+
+                    b.Property<string>("BatterName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("BowlerId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("nvarchar(16)");
+
+                    b.Property<string>("BowlerName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("CompetitionId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Dismissals")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Dots")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Fours")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Runs")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Sixes")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CompetitionId", "BowlerId");
+
+                    b.HasIndex("CompetitionId", "BatterId", "BowlerId")
+                        .IsUnique();
+
+                    b.ToTable("BatterBowlerMatchups", "ipl");
+                });
+
             modelBuilder.Entity("Ipl.Domain.BudgetAllocation", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<decimal>("Amount")
@@ -379,7 +430,6 @@ namespace Ipl.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Ipl.Domain.ContractPayment", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<decimal>("Amount")
@@ -442,7 +492,6 @@ namespace Ipl.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Ipl.Domain.Document", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<byte[]>("Content")
@@ -498,7 +547,6 @@ namespace Ipl.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Ipl.Domain.EmailMessage", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<int>("Attempts")
@@ -538,7 +586,6 @@ namespace Ipl.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Ipl.Domain.FinanceTransaction", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<decimal>("Amount")
@@ -602,7 +649,6 @@ namespace Ipl.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Ipl.Domain.Franchise", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("City")
@@ -701,7 +747,6 @@ namespace Ipl.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Ipl.Domain.FranchiseMember", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid>("FranchiseId")
@@ -804,7 +849,6 @@ namespace Ipl.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Ipl.Domain.FranchiseSquad", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Acquisition")
@@ -852,7 +896,6 @@ namespace Ipl.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Ipl.Domain.FranchiseStaff", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Category")
@@ -889,7 +932,6 @@ namespace Ipl.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Ipl.Domain.LoginHistory", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("At")
@@ -928,7 +970,6 @@ namespace Ipl.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Ipl.Domain.Match", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("City")
@@ -965,6 +1006,9 @@ namespace Ipl.Infrastructure.Persistence.Migrations
                     b.Property<string>("Result")
                         .HasMaxLength(450)
                         .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("ScorecardJson")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Stage")
                         .HasMaxLength(50)
@@ -1030,7 +1074,6 @@ namespace Ipl.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Ipl.Domain.Message", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Body")
@@ -1064,7 +1107,6 @@ namespace Ipl.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Ipl.Domain.MessageThread", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid?>("CounterpartyFranchiseId")
@@ -1129,7 +1171,6 @@ namespace Ipl.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Ipl.Domain.Notification", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Body")
@@ -1228,10 +1269,98 @@ namespace Ipl.Infrastructure.Persistence.Migrations
                     b.ToTable("Permissions", "ipl");
                 });
 
+            modelBuilder.Entity("Ipl.Domain.PersonSeasonStat", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Balls")
+                        .HasColumnType("int");
+
+                    b.Property<int>("BallsBowled")
+                        .HasColumnType("int");
+
+                    b.Property<int>("BestRuns")
+                        .HasColumnType("int");
+
+                    b.Property<int>("BestWickets")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Catches")
+                        .HasColumnType("int");
+
+                    b.Property<int>("CompetitionId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("DotBalls")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Fifties")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Fours")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("HighestNotOut")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("HighestScore")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Hundreds")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Innings")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Matches")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("NotOuts")
+                        .HasColumnType("int");
+
+                    b.Property<string>("PersonId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("nvarchar(16)");
+
+                    b.Property<int>("Runs")
+                        .HasColumnType("int");
+
+                    b.Property<int>("RunsConceded")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Sixes")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Team")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("Wickets")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Year")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CompetitionId", "PersonId");
+
+                    b.HasIndex("CompetitionId", "Year");
+
+                    b.ToTable("PersonSeasonStats", "ipl");
+                });
+
             modelBuilder.Entity("Ipl.Domain.Player", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("BattingHand")
@@ -1373,7 +1502,6 @@ namespace Ipl.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Ipl.Domain.PlayerAvailability", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateOnly?>("ExpectedReturn")
@@ -1408,7 +1536,6 @@ namespace Ipl.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Ipl.Domain.PlayerCareerStatistic", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<int>("BallsBowled")
@@ -1507,7 +1634,6 @@ namespace Ipl.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Ipl.Domain.PlayerComparison", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("CreatedAt")
@@ -1548,7 +1674,6 @@ namespace Ipl.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Ipl.Domain.PlayerContract", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Acquisition")
@@ -1610,7 +1735,6 @@ namespace Ipl.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Ipl.Domain.PlayerMatchStatistic", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<int>("BallsBowled")
@@ -1769,7 +1893,6 @@ namespace Ipl.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Ipl.Domain.PlayerMedicalRecord", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Assessment")
@@ -1871,7 +1994,6 @@ namespace Ipl.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Ipl.Domain.PlayerScoutingReport", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid?>("AssignmentId")
@@ -1972,7 +2094,6 @@ namespace Ipl.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Ipl.Domain.PlayerSeasonStatistic", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<int>("BallsBowled")
@@ -2072,7 +2193,6 @@ namespace Ipl.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Ipl.Domain.PlayerTeam", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Acquisition")
@@ -2113,7 +2233,6 @@ namespace Ipl.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Ipl.Domain.PlayerValuation", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("CreatedAt")
@@ -2163,7 +2282,6 @@ namespace Ipl.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Ipl.Domain.PlayingXI", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid?>("CaptainId")
@@ -2220,7 +2338,6 @@ namespace Ipl.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Ipl.Domain.PlayingXIPlayer", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<int?>("BattingOrder")
@@ -2250,7 +2367,6 @@ namespace Ipl.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Ipl.Domain.RefreshToken", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("CreatedAt")
@@ -2307,7 +2423,6 @@ namespace Ipl.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Ipl.Domain.ReleaseRecord", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid>("FranchiseId")
@@ -2342,10 +2457,66 @@ namespace Ipl.Infrastructure.Persistence.Migrations
                     b.ToTable("ReleaseRecords", "ipl");
                 });
 
+            modelBuilder.Entity("Ipl.Domain.ReplacementRequest", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("DecidedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("DecidedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("DecisionNote")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<decimal>("Fee")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<Guid>("FranchiseId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("InjuredPlayerId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<Guid>("ReplacementPlayerId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("RequestedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("RequestedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("SeasonId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("InjuredPlayerId");
+
+                    b.HasIndex("ReplacementPlayerId");
+
+                    b.HasIndex("FranchiseId", "SeasonId", "Status");
+
+                    b.ToTable("ReplacementRequests", "ipl");
+                });
+
             modelBuilder.Entity("Ipl.Domain.RetentionPlan", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("CreatedAt")
@@ -2385,7 +2556,6 @@ namespace Ipl.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Ipl.Domain.RetentionRecord", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Category")
@@ -2488,7 +2658,6 @@ namespace Ipl.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Ipl.Domain.ScoutingAssignment", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid?>("AssignedToId")
@@ -2654,7 +2823,6 @@ namespace Ipl.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Ipl.Domain.TradeApproval", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Comment")
@@ -2699,7 +2867,6 @@ namespace Ipl.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Ipl.Domain.TradeNegotiation", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Action")
@@ -2745,7 +2912,6 @@ namespace Ipl.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Ipl.Domain.TradeOffer", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid?>("AwaitingFranchiseId")
@@ -2827,7 +2993,6 @@ namespace Ipl.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Ipl.Domain.TradeOfferPlayer", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<decimal>("ContractSalary")
@@ -2859,7 +3024,6 @@ namespace Ipl.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Ipl.Domain.TradeTransaction", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("CompletedAt")
@@ -2889,7 +3053,6 @@ namespace Ipl.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Ipl.Domain.User", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("CreatedAt")
@@ -2957,7 +3120,6 @@ namespace Ipl.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Ipl.Domain.UserRole", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("AssignedAt")
@@ -2991,7 +3153,6 @@ namespace Ipl.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Ipl.Domain.UserToken", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("CreatedAt")
@@ -3113,6 +3274,17 @@ namespace Ipl.Infrastructure.Persistence.Migrations
                     b.Navigation("Player");
                 });
 
+            modelBuilder.Entity("Ipl.Domain.BatterBowlerMatchup", b =>
+                {
+                    b.HasOne("Ipl.Domain.Competition", "Competition")
+                        .WithMany()
+                        .HasForeignKey("CompetitionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Competition");
+                });
+
             modelBuilder.Entity("Ipl.Domain.ContractPayment", b =>
                 {
                     b.HasOne("Ipl.Domain.PlayerContract", "Contract")
@@ -3220,6 +3392,17 @@ namespace Ipl.Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("Thread");
+                });
+
+            modelBuilder.Entity("Ipl.Domain.PersonSeasonStat", b =>
+                {
+                    b.HasOne("Ipl.Domain.Competition", "Competition")
+                        .WithMany()
+                        .HasForeignKey("CompetitionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Competition");
                 });
 
             modelBuilder.Entity("Ipl.Domain.Player", b =>
@@ -3449,6 +3632,33 @@ namespace Ipl.Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("Player");
+                });
+
+            modelBuilder.Entity("Ipl.Domain.ReplacementRequest", b =>
+                {
+                    b.HasOne("Ipl.Domain.Franchise", "Franchise")
+                        .WithMany()
+                        .HasForeignKey("FranchiseId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Ipl.Domain.Player", "InjuredPlayer")
+                        .WithMany()
+                        .HasForeignKey("InjuredPlayerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Ipl.Domain.Player", "ReplacementPlayer")
+                        .WithMany()
+                        .HasForeignKey("ReplacementPlayerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Franchise");
+
+                    b.Navigation("InjuredPlayer");
+
+                    b.Navigation("ReplacementPlayer");
                 });
 
             modelBuilder.Entity("Ipl.Domain.RetentionRecord", b =>

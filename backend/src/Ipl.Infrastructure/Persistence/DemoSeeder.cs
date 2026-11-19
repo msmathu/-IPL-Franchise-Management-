@@ -368,6 +368,9 @@ public class DemoSeeder(AppDbContext db, IPasswordHasher<User> hasher, DemoSeedO
             [RuleKeys.TradeRequiresPlayerConsent] = "true",
             [RuleKeys.TradeConsiderationAffectsPurse] = "false",
             [RuleKeys.TradeSalaryAffectsPurse] = "true",
+            [RuleKeys.ReplacementsEnabled] = "true",
+            [RuleKeys.ReplacementFeeCap] = "true",
+            [RuleKeys.ReplacementAffectsPurse] = "false",
         };
         foreach (var def in RuleKeys.Definitions)
             db.SeasonRules.Add(new SeasonRule

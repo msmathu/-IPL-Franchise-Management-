@@ -51,7 +51,7 @@ export interface Lookups {
           <form [formGroup]="form" (ngSubmit)="create()" class="form-grid">
             <mat-form-field><mat-label>Full name</mat-label><input matInput formControlName="fullName" /></mat-form-field>
             <mat-form-field><mat-label>Display name</mat-label><input matInput formControlName="displayName" /></mat-form-field>
-            <mat-form-field><mat-label>Date of birth</mat-label><input matInput type="date" formControlName="dateOfBirth" /></mat-form-field>
+            <mat-form-field><mat-label>Date of birth (optional)</mat-label><input matInput type="date" formControlName="dateOfBirth" /></mat-form-field>
             <mat-form-field><mat-label>Country</mat-label><mat-select formControlName="countryId">@for (c of l.countries; track c.id) { <mat-option [value]="c.id">{{ c.name }}</mat-option> }</mat-select></mat-form-field>
             <mat-form-field><mat-label>Primary role</mat-label><mat-select formControlName="primaryRoleId">@for (r of l.roles; track r.id) { <mat-option [value]="r.id">{{ r.name }}</mat-option> }</mat-select></mat-form-field>
             <mat-form-field><mat-label>Batting</mat-label><mat-select formControlName="battingHand"><mat-option value="RightHand">Right-handed</mat-option><mat-option value="LeftHand">Left-handed</mat-option></mat-select></mat-form-field>
@@ -166,7 +166,7 @@ export class PlayersPage {
   });
   readonly res = rxResource({ params: () => this.query(), stream: ({ params }) => this.api.get<Paged<any>>('players', params as any) });
   readonly form = inject(FormBuilder).nonNullable.group({
-    fullName: ['', Validators.required], displayName: [''], dateOfBirth: ['', Validators.required], countryId: [1, Validators.required],
+    fullName: ['', Validators.required], displayName: [''], dateOfBirth: [''], countryId: [1, Validators.required],
     primaryRoleId: [1, Validators.required], secondaryRoleId: [null as number | null], battingHand: ['RightHand'], bowlingType: ['None'], bowlingStyle: [''],
     isWicketKeeper: [false], isCapped: [false], status: ['AvailableForAuction'], careerStatus: ['Active'], dataSource: ['', Validators.required], photoUrl: [''],
   });
@@ -196,6 +196,7 @@ export class PlayersPage {
 
   create(): void {
     const v = this.form.getRawValue();
+    (v as any).dateOfBirth = v.dateOfBirth || null;
     this.api.post<{ id: string }>('players', { ...v, displayName: v.displayName || v.fullName, photoUrl: v.photoUrl || null }).subscribe({
       next: (r) => { this.toast.ok('Player created.'); this.open(r.id); },
       error: (e) => this.toast.error(e),

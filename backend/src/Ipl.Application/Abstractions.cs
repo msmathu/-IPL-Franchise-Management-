@@ -80,6 +80,8 @@ public interface IAppDbContext
     DbSet<PlayerMatchStatistic> PlayerMatchStatistics { get; }
     DbSet<PlayerSeasonStatistic> PlayerSeasonStatistics { get; }
     DbSet<PlayerCareerStatistic> PlayerCareerStatistics { get; }
+    DbSet<PersonSeasonStat> PersonSeasonStats { get; }
+    DbSet<BatterBowlerMatchup> BatterBowlerMatchups { get; }
     DbSet<TradeOffer> TradeOffers { get; }
     DbSet<TradeOfferPlayer> TradeOfferPlayers { get; }
     DbSet<TradeNegotiation> TradeNegotiations { get; }
@@ -91,6 +93,7 @@ public interface IAppDbContext
     DbSet<RetentionPlan> RetentionPlans { get; }
     DbSet<RetentionRecord> RetentionRecords { get; }
     DbSet<ReleaseRecord> ReleaseRecords { get; }
+    DbSet<ReplacementRequest> ReplacementRequests { get; }
     DbSet<AuctionEvent> AuctionEvents { get; }
     DbSet<AuctionPlayer> AuctionPlayers { get; }
     DbSet<AuctionBid> AuctionBids { get; }

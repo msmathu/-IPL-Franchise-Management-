@@ -47,6 +47,8 @@ public class Match : Entity
     /// <summary>Overs available to the side batting second after a rain reduction (DLS), when published.</summary>
     public int? Team2OversLimit { get; set; }
     public bool Team1BattedFirst { get; set; } = true;
+    /// <summary>Full scorecard (batting, bowling, extras, fall of wickets) as JSON, built from the ball-by-ball data.</summary>
+    public string? ScorecardJson { get; set; }
     /// <summary>Provider reference, e.g. "cricsheet:1473512"; unique when set.</summary>
     public string? ExternalRef { get; set; }
     public bool IsDemo { get; set; }
@@ -158,4 +160,53 @@ public class PlayerCareerStatistic : StatisticTotals
     public Competition? Competition { get; set; }
     public int FirstYear { get; set; }
     public int LastYear { get; set; }
+}
+
+/// <summary>
+/// One person's totals in one competition season, for everyone who played (also retired players who are not in
+/// the Players table). Used for leaderboards and records. Identified by the provider's person id.
+/// </summary>
+public class PersonSeasonStat : Entity
+{
+    public int CompetitionId { get; set; }
+    public Competition? Competition { get; set; }
+    public int Year { get; set; }
+    public string PersonId { get; set; } = "";
+    public string Name { get; set; } = "";
+    public string Team { get; set; } = "";
+    public int Matches { get; set; }
+    public int Innings { get; set; }
+    public int NotOuts { get; set; }
+    public int Runs { get; set; }
+    public int Balls { get; set; }
+    public int HighestScore { get; set; }
+    public bool HighestNotOut { get; set; }
+    public int Fifties { get; set; }
+    public int Hundreds { get; set; }
+    public int Fours { get; set; }
+    public int Sixes { get; set; }
+    public int BallsBowled { get; set; }
+    public int RunsConceded { get; set; }
+    public int Wickets { get; set; }
+    public int DotBalls { get; set; }
+    public int BestWickets { get; set; }
+    public int BestRuns { get; set; }
+    public int Catches { get; set; }
+}
+
+/// <summary>Batter v bowler record in a competition (all seasons), from ball-by-ball data.</summary>
+public class BatterBowlerMatchup : Entity
+{
+    public int CompetitionId { get; set; }
+    public Competition? Competition { get; set; }
+    public string BatterId { get; set; } = "";
+    public string BatterName { get; set; } = "";
+    public string BowlerId { get; set; } = "";
+    public string BowlerName { get; set; } = "";
+    public int Balls { get; set; }
+    public int Runs { get; set; }
+    public int Dismissals { get; set; }
+    public int Fours { get; set; }
+    public int Sixes { get; set; }
+    public int Dots { get; set; }
 }

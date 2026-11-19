@@ -1,4 +1,5 @@
 import { DatePipe } from '@angular/common';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 import { teamVars } from '../../core/team-theme';
 import { roleIcon } from '../../shared/player-card';
 import { Component, computed, inject, input, output, signal } from '@angular/core';
@@ -206,7 +207,7 @@ export class PlayerAnalysis {
 
 @Component({
   selector: 'app-player-profile',
-  imports: [StateView, StatusChip, Monogram, PlayerStats, PlayerAnalysis, InrPipe, WordsPipe, DatePipe, MatTabsModule,
+  imports: [PlayerPicker, RouterLink, MatCheckboxModule, StateView, StatusChip, Monogram, PlayerStats, PlayerAnalysis, InrPipe, WordsPipe, DatePipe, MatTabsModule,
     MatButtonModule, MatIconModule, MatFormFieldModule, MatSelectModule, MatInputModule, FormsModule],
   template: `
     <div class="page">
@@ -234,6 +235,7 @@ export class PlayerAnalysis {
                 @if (p.franchise; as fr) {
                   <span class="row"><app-monogram [name]="fr.name" [code]="fr.code" [logoUrl]="fr.logoUrl" [color]="fr.secondaryColor ?? fr.primaryColor" [size]="40" /><strong>{{ fr.name }}</strong></span>
                 } @else { <strong>Unsigned</strong> }
+                @if (auth.has(P.playersManage)) { <button mat-stroked-button class="hero-btn" (click)="startEdit(p)"><mat-icon>edit</mat-icon>Edit details</button> }
                 @if (p.isDemo) { <span class="chip">Fictional demo player</span> }
                 <span class="chip">{{ p.status | words }}</span><span class="chip">{{ p.availability.status }}</span>
               </div>
@@ -242,9 +244,64 @@ export class PlayerAnalysis {
           @if (p.photoCredit) {
             <p class="small muted">{{ p.photoCredit }}@if (p.photoSourceUrl) { · <a [href]="p.photoSourceUrl" target="_blank" rel="noopener">source &amp; licence</a> }</p>
           }
+          @if (edit(); as e) {
+            <section class="card"><h2>Edit player details</h2>
+              <div class="form-grid">
+                <mat-form-field><mat-label>Full name</mat-label><input matInput [(ngModel)]="e.fullName" /></mat-form-field>
+                <mat-form-field><mat-label>Display name</mat-label><input matInput [(ngModel)]="e.displayName" /></mat-form-field>
+                <mat-form-field><mat-label>Date of birth (optional)</mat-label><input matInput type="date" [(ngModel)]="e.dateOfBirth" /></mat-form-field>
+                <mat-form-field><mat-label>Country</mat-label><mat-select [(ngModel)]="e.countryId">@for (c of lookups.value()?.countries ?? []; track c.id) { <mat-option [value]="c.id">{{ c.name }}</mat-option> }</mat-select></mat-form-field>
+                <mat-form-field><mat-label>Primary role</mat-label><mat-select [(ngModel)]="e.primaryRoleId">@for (r of lookups.value()?.roles ?? []; track r.id) { <mat-option [value]="r.id">{{ r.name }}</mat-option> }</mat-select></mat-form-field>
+                <mat-form-field><mat-label>Secondary role</mat-label><mat-select [(ngModel)]="e.secondaryRoleId"><mat-option [value]="null">None</mat-option>@for (r of lookups.value()?.roles ?? []; track r.id) { <mat-option [value]="r.id">{{ r.name }}</mat-option> }</mat-select></mat-form-field>
+                <mat-form-field><mat-label>Batting</mat-label><mat-select [(ngModel)]="e.battingHand"><mat-option value="RightHand">Right-handed</mat-option><mat-option value="LeftHand">Left-handed</mat-option><mat-option value="Unknown">Not recorded</mat-option></mat-select></mat-form-field>
+                <mat-form-field><mat-label>Bowling type</mat-label><mat-select [(ngModel)]="e.bowlingType">@for (b of lookups.value()?.bowlingTypes ?? []; track b) { <mat-option [value]="b">{{ b | words }}</mat-option> }</mat-select></mat-form-field>
+                <mat-form-field><mat-label>Bowling style</mat-label><input matInput [(ngModel)]="e.bowlingStyle" placeholder="Right-arm fast-medium" /></mat-form-field>
+                <mat-form-field><mat-label>Data source</mat-label><input matInput [(ngModel)]="e.dataSource" /></mat-form-field>
+                <mat-checkbox [(ngModel)]="e.isWicketKeeper">Wicketkeeper</mat-checkbox>
+                <mat-checkbox [(ngModel)]="e.isCapped">Capped international</mat-checkbox>
+              </div>
+              <div class="row"><button mat-flat-button [disabled]="!e.fullName || !e.dataSource" (click)="saveEdit(e)">Save changes</button><button mat-button (click)="edit.set(null)">Cancel</button>
+                <span class="small muted">Changes are recorded in the audit log. Prices are set by auctions, trades and contracts, not here.</span></div>
+            </section>
+          }
           <mat-tab-group>
             <mat-tab label="Statistics"><div class="stack tabpad"><app-player-stats [playerId]="p.id" /></div></mat-tab>
             <mat-tab label="Performance analysis"><div class="stack tabpad"><app-player-analysis [playerId]="p.id" [competitions]="competitions()" /></div></mat-tab>
+            <mat-tab label="Match-ups">
+              <div class="stack tabpad">
+                <section class="card"><h2><mat-icon class="role-ico">compare_arrows</mat-icon>Head to head with one player</h2>
+                  <div class="row"><app-player-picker [label]="'Opponent (' + (isBowler(p) ? 'batter' : 'bowler') + ')'" (picked)="vsPick($event, p)" />
+                    @if (vs.value(); as v) {
+                      @if (v.balls) {
+                        <span class="chip">{{ v.batterName }} v {{ v.bowlerName }}</span>
+                        <strong>{{ v.runs }} runs off {{ v.balls }} balls · {{ v.dismissals }} dismissal{{ v.dismissals === 1 ? '' : 's' }}</strong>
+                        <span class="muted small">SR {{ v.strikeRate ?? '—' }} · avg {{ v.average ?? '—' }} · dots {{ v.dotPercentage }}% · 4s {{ v.fours }} · 6s {{ v.sixes }}</span>
+                      } @else { <span class="muted">They have not faced each other in the IPL (or a player has no linked data).</span> }
+                    }
+                  </div>
+                </section>
+                @if (matchups.value(); as mu) {
+                  <div class="grid cols-2">
+                    @for (g of [{ t: 'Toughest bowlers (as batter)', icon: 'gpp_bad', rows: mu.asBatterToughest, bat: true },
+                                { t: 'Favourite bowlers (as batter)', icon: 'thumb_up', rows: mu.asBatterFavourite, bat: true },
+                                { t: 'Favourite victims (as bowler)', icon: 'gps_fixed', rows: mu.asBowlerBunnies, bat: false },
+                                { t: 'Batters who attack him (as bowler)', icon: 'local_fire_department', rows: mu.asBowlerNemesis, bat: false }]; track g.t) {
+                      @if (g.rows.length) {
+                        <section class="card"><h2><mat-icon class="role-ico">{{ g.icon }}</mat-icon>{{ g.t }}</h2>
+                          <table class="data"><tr><th>{{ g.bat ? 'Bowler' : 'Batter' }}</th><th class="num">Balls</th><th class="num">Runs</th><th class="num">Outs</th><th class="num">SR</th></tr>
+                            @for (r of g.rows; track $index) {
+                              <tr><td>@if (g.bat ? r.bowlerId : r.batterId) { <a [routerLink]="['/players', g.bat ? r.bowlerId : r.batterId]">{{ g.bat ? r.bowlerName : r.batterName }}</a> } @else { {{ g.bat ? r.bowlerName : r.batterName }} }</td>
+                                <td class="num">{{ r.balls }}</td><td class="num">{{ r.runs }}</td><td class="num">{{ r.dismissals }}</td><td class="num">{{ r.strikeRate }}</td></tr>
+                            }
+                          </table>
+                        </section>
+                      }
+                    }
+                  </div>
+                  <p class="muted small">{{ mu.source }}</p>
+                }
+              </div>
+            </mat-tab>
             <mat-tab label="Rating & value">
               <div class="grid cols-2 tabpad">
                 <section class="card"><h2>Player potential rating</h2>
@@ -353,7 +410,7 @@ export class PlayerProfilePage {
   readonly res = rxResource({ params: () => this.id(), stream: ({ params }) => this.api.get<any>(`players/${params}`) });
   readonly rating = rxResource({ params: () => this.id(), stream: ({ params }) => this.api.get<any>(`players/${params}/rating`) });
   readonly valuation = rxResource({ params: () => this.id(), stream: ({ params }) => (this.auth.has(P.valuationRead) ? this.api.get<any>(`players/${params}/valuation`) : of(null)) });
-  private readonly lookups = rxResource({ stream: () => this.api.get<any>('players/lookups') });
+  readonly lookups = rxResource({ stream: () => this.api.get<any>('players/lookups') });
   readonly competitions = computed(() => (this.lookups.value()?.competitions ?? []).filter((c: any) => /T20/.test(c.group)));
   availStatus = 'Available';
   photoUrl = '';
@@ -374,6 +431,30 @@ export class PlayerProfilePage {
       battingHand: p.battingHand, bowlingStyle: p.bowlingStyle, bowlingType: p.bowlingType, primaryRoleId: p.primaryRoleId, secondaryRoleId: p.secondaryRoleId,
       isWicketKeeper: p.isWicketKeeper, isCapped: p.isCapped, status: p.status, careerStatus: p.careerStatus, dataSource: p.dataSource,
     }).subscribe({ next: () => { this.toast.ok('Photo saved.'); this.res.reload(); }, error: (e) => this.toast.error(e) });
+  }
+
+  readonly edit = signal<any | null>(null);
+  readonly matchups = rxResource({ params: () => this.id(), stream: ({ params }) => this.api.get<any>(`season-centre/players/${params}/matchups`) });
+  private readonly vsPair = signal<{ batter: string; bowler: string } | null>(null);
+  readonly vs = rxResource({ params: () => this.vsPair(), stream: ({ params }) => (params ? this.api.get<any>('season-centre/matchup', params) : of(null)) });
+  isBowler(p: any): boolean { return p.roleCode === 'bowler'; }
+  vsPick(other: any, p: any): void {
+    this.vsPair.set(this.isBowler(p) ? { batter: other.id, bowler: p.id } : { batter: p.id, bowler: other.id });
+  }
+
+  startEdit(p: any): void {
+    this.edit.set({
+      fullName: p.fullName, displayName: p.displayName, dateOfBirth: p.dateOfBirth ?? '', countryId: p.countryId, primaryRoleId: p.primaryRoleId,
+      secondaryRoleId: p.secondaryRoleId, battingHand: p.battingHand, bowlingType: p.bowlingType, bowlingStyle: p.bowlingStyle,
+      isWicketKeeper: p.isWicketKeeper, isCapped: p.isCapped, dataSource: p.dataSource, photoUrl: p.photoUrl, status: p.status, careerStatus: p.careerStatus,
+    });
+  }
+
+  saveEdit(e: any): void {
+    this.api.put(`players/${this.id()}`, { ...e, dateOfBirth: e.dateOfBirth || null }).subscribe({
+      next: () => { this.toast.ok('Player details saved.'); this.edit.set(null); this.res.reload(); },
+      error: (err) => this.toast.error(err),
+    });
   }
 
   setStatus(p: any, status: string): void {
