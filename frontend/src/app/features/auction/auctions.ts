@@ -80,6 +80,22 @@ export class AuctionsPage {
         <a mat-flat-button [routerLink]="['/auction', id(), 'live']"><mat-icon>gavel</mat-icon>Live screen</a>
       </app-page-header>
       @if (auth.has(P.auctionsManage)) {
+        <section class="card official"><h2><mat-icon class="role-ico">upload_file</mat-icon>Import the official auction list</h2>
+          <p class="small">Upload the league's published list (CSV, or Excel .xlsx). Every row becomes a lot with its set and base price; players not in the database
+            yet are created from the list. Columns are recognised by name, including the IPL format: <em>Set No., 2027 Set, First Name, Surname, Country, DOB,
+            Specialism, Batting, Bowling Style, C/U/A, Reserve Price Rs Lakh</em>.</p>
+          <div class="row">
+            <mat-form-field class="wide"><mat-label>Source (e.g. "IPL 2027 auction list, iplt20.com, 5 Dec 2026")</mat-label><input matInput [(ngModel)]="listSource" /></mat-form-field>
+            <mat-checkbox [(ngModel)]="replaceProvisional">Remove provisional lots not on the list</mat-checkbox>
+            <button mat-flat-button [disabled]="!listSource" (click)="listFile.click()"><mat-icon>upload</mat-icon>Choose file and import</button>
+            <input #listFile type="file" accept=".csv,.xlsx" hidden (change)="importList(listFile)" />
+          </div>
+          @if (importResult(); as r) {
+            <p class="small"><strong>Imported {{ r.rows }} rows:</strong> {{ r.matched }} matched, {{ r.playersCreated }} new players, {{ r.lotsAdded }} lots added,
+              {{ r.lotsUpdated }} updated, {{ r.provisionalRemoved }} provisional removed, {{ r.skipped }} skipped.</p>
+            @for (e of r.errors; track e) { <div class="small warn-text">{{ e }}</div> }
+          }
+        </section>
         <section class="card"><h2>Add players to the pool</h2>
           <div class="row">
             <mat-form-field><mat-label>Set name</mat-label><input matInput [(ngModel)]="setName" /></mat-form-field>
@@ -102,7 +118,7 @@ export class AuctionsPage {
           <div class="table-wrap"><table class="data">
             <tr><th>Set</th><th class="num">Lot</th><th>Player</th><th>Role</th><th>Country</th><th class="num">Base</th><th>Status</th><th class="num">Bid / price</th><th>Round</th><th></th></tr>
             @for (l of lots.value() ?? []; track l.id) {
-              <tr><td>{{ l.setNumber }}. {{ l.setName }}</td><td class="num">{{ l.lotNumber }}</td><td><a [routerLink]="['/players', l.playerId]">{{ l.playerName }}</a>@if (l.isOverseas) { <span class="tag os">OS</span> }</td>
+              <tr><td>{{ l.setNumber }}. {{ l.setName }}@if (l.setName.startsWith('Provisional')) { <span class="tag os">provisional</span> }</td><td class="num">{{ l.lotNumber }}</td><td><a [routerLink]="['/players', l.playerId]">{{ l.playerName }}</a>@if (l.isOverseas) { <span class="tag os">OS</span> }</td>
                 <td>{{ l.role }}</td><td>{{ l.country }}</td><td class="num">{{ l.basePrice | inr }}</td><td><app-chip [text]="l.status | words" /></td>
                 <td class="num">{{ l.currentBid | inr }} {{ l.currentBidFranchise ?? '' }}</td><td>{{ l.round }}</td>
                 <td>@if (auth.has(P.auctionsManage) && l.status === 'Pending') { <button mat-icon-button (click)="removeLot(l.id)" aria-label="Remove"><mat-icon>delete</mat-icon></button> }</td></tr>
@@ -134,6 +150,20 @@ export class AuctionSetupPage {
   addChosen(): void {
     this.api.post<any>(`auctions/${this.id()}/lots`, { playerIds: this.chosen(), setName: this.setName, setNumber: this.setNumber, basePrice: this.baseLakh * 1e5 }).subscribe({
       next: (r) => { this.toast.ok(`${r.added} players added.`); this.chosen.set([]); this.lots.reload(); },
+      error: (e) => this.toast.error(e),
+    });
+  }
+
+  listSource = '';
+  replaceProvisional = true;
+  readonly importResult = signal<any | null>(null);
+
+  importList(input: HTMLInputElement): void {
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file) return;
+    this.api.upload<any>(`auctions/${this.id()}/import-list`, file, { source: this.listSource, replaceProvisional: String(this.replaceProvisional) }).subscribe({
+      next: (r) => { this.importResult.set(r); this.toast.ok(`Auction list imported: ${r.lotsAdded} added, ${r.lotsUpdated} updated.`); this.lots.reload(); this.eligible.reload(); },
       error: (e) => this.toast.error(e),
     });
   }

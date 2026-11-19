@@ -78,6 +78,7 @@ public static class DependencyInjection
         services.AddScoped<SquadService>();
         services.AddScoped<AuctionService>();
         services.AddScoped<AuctionAssistantService>();
+        services.AddScoped<AuctionListImporter>();
         services.AddScoped<ScoutingService>();
         services.AddScoped<DocumentService>();
         services.AddScoped<FinanceService>();

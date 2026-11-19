@@ -112,6 +112,54 @@ public class FeatureWorkflowTests(ApiFactory api)
     }
 
     [Fact]
+    public async Task Official_auction_list_creates_lots_sets_and_missing_players()
+    {
+        var league = await api.LoginAsync("league@demo.local");
+        var admin = await api.LoginAsync("admin@demo.local");
+        // An unsigned real player who is already in the database.
+        var lookups = await admin.OkAsync(admin.GetAsync("players/lookups"));
+        var eng = lookups.GetProperty("countries").EnumerateArray().First(c => c.GetProperty("code").GetString() == "ENG").GetProperty("id").GetInt32();
+        var batter = lookups.GetProperty("roles").EnumerateArray().First(r => r.GetProperty("code").GetString() == "batter").GetProperty("id").GetInt32();
+        var existing = await admin.OkAsync(admin.PostAsync("players", new
+        {
+            fullName = "Listed Existing Batter", displayName = "Listed Existing Batter", dateOfBirth = (string?)null, countryId = eng, photoUrl = (string?)null,
+            battingHand = "RightHand", bowlingStyle = "", bowlingType = "None", primaryRoleId = batter, secondaryRoleId = (int?)null, isWicketKeeper = false,
+            isCapped = true, status = "AvailableForAuction", careerStatus = "Active", dataSource = "Test",
+        }));
+        var auction = await league.OkAsync(league.PostAsync("auctions", new { name = "List import test", isMegaAuction = false, scheduledAt = (string?)null, bidTimerSeconds = 30, allowReopenUnsold = true }));
+        var auctionId = auction.GetProperty("id").GetString();
+
+        // IPL-style sheet: a title row, then the header.
+        var csv = string.Join("\n",
+            "TATA IPL 2027 Player Auction List,,,,,,,,,,",
+            "List Sr.No.,Set No.,2027 Set,First Name,Surname,Country,DOB,Specialism,Batting,Bowling Style,C/U/A,Reserve Price Rs Lakh",
+            "1,1,M1,Listed Existing,Batter,England,,BATTER,RHB,,Capped,200",
+            "2,2,BA1,Brand,Newcomer,Australia,15/03/2001,BOWLER,LHB,Left arm Fast medium,Uncapped,30",
+            "3,2,BA1,Too,Cheap,India,,BOWLER,RHB,,Uncapped,5") + "\n";
+        using var form = new MultipartFormDataContent();
+        form.Add(new ByteArrayContent(System.Text.Encoding.UTF8.GetBytes(csv)), "file", "auction-list.csv");
+        form.Add(new StringContent("Test list"), "source");
+        form.Add(new StringContent("true"), "replaceProvisional");
+        var res = await league.Http.SendAsync(new HttpRequestMessage(HttpMethod.Post, $"/api/v1/auctions/{auctionId}/import-list") { Content = form, Headers = { Authorization = league.Http.DefaultRequestHeaders.Authorization } });
+        var body = JsonDocument.Parse(await res.Content.ReadAsStringAsync()).RootElement.GetProperty("data");
+        Assert.Equal(3, body.GetProperty("rows").GetInt32());
+        Assert.Equal(1, body.GetProperty("matched").GetInt32());
+        Assert.Equal(1, body.GetProperty("playersCreated").GetInt32());
+        Assert.Equal(2, body.GetProperty("lotsAdded").GetInt32());
+        Assert.Equal(1, body.GetProperty("skipped").GetInt32()); // below the season minimum
+
+        var lots = await league.OkAsync(league.GetAsync($"auctions/{auctionId}/lots"));
+        var list = lots.EnumerateArray().ToList();
+        Assert.Contains(list, l => l.GetProperty("playerId").GetString() == existing.GetProperty("id").GetString() && l.GetProperty("basePrice").GetDecimal() == 2 * 10_000_000m);
+        var created = list.Single(l => l.GetProperty("playerName").GetString() == "Brand Newcomer");
+        Assert.Equal("BA1", created.GetProperty("setName").GetString());
+        var profile = await admin.OkAsync(admin.GetAsync($"players/{created.GetProperty("playerId").GetString()}"));
+        Assert.Equal("2001-03-15", profile.GetProperty("dateOfBirth").GetString());
+        Assert.Equal("LeftHand", profile.GetProperty("battingHand").GetString());
+        Assert.True(profile.GetProperty("isOverseas").GetBoolean());
+    }
+
+    [Fact]
     public async Task Season_centre_and_records_endpoints_answer_without_match_data()
     {
         var analyst = await api.LoginAsync("analyst.mi@demo.local");

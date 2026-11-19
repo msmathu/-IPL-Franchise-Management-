@@ -41,9 +41,10 @@ export class Api {
     return this.http.delete<ApiEnvelope<T>>(`${API_BASE}/${path}`).pipe(map((r) => r?.data as T));
   }
 
-  upload<T>(path: string, file: File): Observable<T> {
+  upload<T>(path: string, file: File, fields: Record<string, string> = {}): Observable<T> {
     const form = new FormData();
     form.append('file', file);
+    for (const [k, v] of Object.entries(fields)) form.append(k, v);
     return this.http.post<ApiEnvelope<T>>(`${API_BASE}/${path}`, form).pipe(map((r) => r.data));
   }
 

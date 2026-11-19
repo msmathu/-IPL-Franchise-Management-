@@ -22,6 +22,12 @@ Squads do not change by themselves: real signings, trades and releases are recor
 
 The current season uses the **official IPL 2027 retention list** (IPL media advisory, iplt20.com, 18 Nov 2026): 184 retained players (55 overseas), 89 released, 14 confirmed trades (fees as reported by CricTracker), purse ₹130 Cr per team with the official remaining purses. Six players missing from the earlier 2026 data were added (Pat Cummins, Josh Hazlewood, Josh Inglis, Nathan Ellis, Harshit Rana, Yash Dayal) with public profile facts only. A database backup taken before the change is in SQL Server's default backup folder (`IplFranchise_before_ipl2027_squads_*.bak`).
 
+## Official auction list
+
+When the league publishes the auction list (usually one to two weeks before the auction), the auctioneer opens the auction in *Auction Centre → Player pool & configuration* and uses **Import the official auction list** (CSV or Excel `.xlsx`; `auctions.manage`, or `POST /api/v1/auctions/{id}/import-list`). Each row becomes a lot with its set, order and base price. Existing players are matched by name (country breaks ties); players not in the database are created from the list (country, role, capped status, batting/bowling style, date of birth). Signed players and base prices below the season minimum are reported and skipped. Columns are recognised by name, including the IPL format (Set No., 2027 Set, First Name, Surname, Country, DOB, Specialism, Batting, Bowling Style, C/U/A, Reserve Price Rs Lakh). With *Remove provisional lots not on the list*, the provisional pool is replaced by the official one.
+
+**Current state:** the official IPL 2027 list is not published yet. "IPL 2027 Auction (provisional pool)" holds the 64 players released on retention day who are in the database (MS Dhoni excluded: named CSK team mentor), each at the ₹30 lakh minimum, marked *provisional*. The season's minimum base price is ₹30 lakh (IPL 2025–27 cycle).
+
 ## Statistics from Cricsheet (ball-by-ball)
 
 [Cricsheet](https://cricsheet.org) publishes ball-by-ball records of every IPL match since 2008 and of international matches under the **Open Data Commons Attribution License (ODC-BY 1.0)**: free to use, including commercially, as long as Cricsheet is credited. Every statistic loaded from it carries the source "Cricsheet (cricsheet.org), ODC-BY 1.0", which the statistics screens show.

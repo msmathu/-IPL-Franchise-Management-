@@ -187,8 +187,19 @@ public class ReplacementsController(ReplacementService replacements) : ApiContro
 }
 
 [Route("api/v{version:apiVersion}/auctions")]
-public class AuctionAssistantController(AuctionAssistantService assistant) : ApiControllerBase
+public class AuctionAssistantController(AuctionAssistantService assistant, Ipl.Infrastructure.Services.AuctionListImporter lists) : ApiControllerBase
 {
+    /// <summary>Imports the official auction list (CSV or Excel): lots, sets, base prices; creates missing players.</summary>
+    [HttpPost("{id:guid}/import-list"), HasPermission(Perm.AuctionsManage), RequestSizeLimit(10_000_000)]
+    public async Task<Ipl.Infrastructure.Services.AuctionListImportResult> ImportList(Guid id, IFormFile file, [FromForm] string source, [FromForm] bool replaceProvisional, CancellationToken ct)
+    {
+        await using var s = file.OpenReadStream();
+        var copy = new MemoryStream();
+        await s.CopyToAsync(copy, ct);
+        copy.Position = 0;
+        return await lists.ImportAsync(id, copy, file.FileName, source, replaceProvisional, ct);
+    }
+
     /// <summary>Bid advice for the player on the block, for the signed-in franchise (model-based).</summary>
     [HttpGet("{id:guid}/assistant"), HasPermission(Perm.ValuationRead)]
     public Task<AuctionAdviceDto?> Advice(Guid id, CancellationToken ct) => assistant.AdviseAsync(id, ct);
