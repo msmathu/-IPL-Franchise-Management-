@@ -1,4 +1,5 @@
 import { DatePipe } from '@angular/common';
+import { PlayerName } from '../../shared/media';
 import { Component, computed, inject, signal } from '@angular/core';
 import { rxResource } from '../../core/resource';
 import { FormsModule } from '@angular/forms';
@@ -18,14 +19,14 @@ import { PlayerPicker } from './player-profile';
 
 @Component({
   selector: 'app-comparison',
-  imports: [PageHeader, StateView, ChartView, PlayerPicker, RouterLink, DatePipe, FormsModule, MatButtonModule, MatIconModule, MatFormFieldModule, MatInputModule, MatCheckboxModule],
+  imports: [PlayerName, PageHeader, StateView, ChartView, PlayerPicker, DatePipe, FormsModule, MatButtonModule, MatIconModule, MatFormFieldModule, MatInputModule, MatCheckboxModule],
   template: `
     <div class="page">
       <app-page-header title="Player comparison" subtitle="Compare 2–5 players side by side" />
       <section class="card">
         <div class="row">
           <app-player-picker label="Add a player" (picked)="add($event)" />
-          @for (p of selected(); track p.id) { <span class="chip">{{ p.fullName }} <button mat-icon-button (click)="remove(p.id)" aria-label="Remove"><mat-icon>close</mat-icon></button></span> }
+          @for (p of selected(); track p.id) { <span class="chip"><app-pname [id]="p.id" [name]="p.fullName" [size]="20" [link]="false" /> <button mat-icon-button (click)="remove(p.id)" aria-label="Remove"><mat-icon>close</mat-icon></button></span> }
         </div>
         @if (selected().length < 2) { <p class="muted small">Pick at least two players.</p> }
       </section>
@@ -38,7 +39,7 @@ import { PlayerPicker } from './player-profile';
             </div>
             <section class="card table-wrap">
               <table class="data">
-                <tr><th></th>@for (p of c.players; track p.playerId) { <th><a [routerLink]="['/players', p.playerId]">{{ p.name }}</a></th> }</tr>
+                <tr><th></th>@for (p of c.players; track p.playerId) { <th><app-pname [id]="p.playerId" [name]="p.name" [size]="24" /></th> }</tr>
                 @for (row of rows; track row.label) {
                   <tr><td class="muted">{{ row.label }}</td>@for (p of c.players; track p.playerId) { <td [class.best]="isBest(row, p, c.players)">{{ row.get(p) ?? '—' }}</td> }</tr>
                 }

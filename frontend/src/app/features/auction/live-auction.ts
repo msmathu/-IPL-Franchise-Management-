@@ -1,4 +1,5 @@
 import { DatePipe, DecimalPipe } from '@angular/common';
+import { PlayerName, TeamName } from '../../shared/media';
 import { Component, OnDestroy, computed, inject, input, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { rxResource } from '../../core/resource';
@@ -15,7 +16,7 @@ import { Monogram, PageHeader, PlayerAvatar, StateView, StatusChip, confirmActio
 
 @Component({
   selector: 'app-live-auction',
-  imports: [PageHeader, StateView, StatusChip, Monogram, PlayerAvatar, RouterLink, InrPipe, DatePipe, DecimalPipe, MatButtonModule, MatIconModule, MatProgressBarModule],
+  imports: [PlayerName, TeamName, PageHeader, StateView, StatusChip, Monogram, PlayerAvatar, RouterLink, InrPipe, DatePipe, DecimalPipe, MatButtonModule, MatIconModule, MatProgressBarModule],
   template: `
     <div class="page">
       <app-state [loading]="res.isLoading() && !live()" [error]="res.error()" (retry)="res.reload()">
@@ -87,13 +88,13 @@ import { Monogram, PageHeader, PlayerAvatar, StateView, StatusChip, confirmActio
                 @for (r of ad.reasons; track r) { <div class="why"><mat-icon>check_circle</mat-icon>{{ r }}</div> }
                 @for (c of ad.cautions; track c) { <div class="why warn"><mat-icon>warning</mat-icon>{{ c }}</div> }
                 @if (ad.alternatives.length) {
-                  <p class="small muted">Similar players still to come: @for (x of ad.alternatives; track x.playerId) { <a [routerLink]="['/players', x.playerId]">{{ x.name }}</a> ({{ x.basePrice | inr }} base){{ $last ? '' : ', ' }} }</p>
+                  <p class="small muted">Similar players still to come: @for (x of ad.alternatives; track x.playerId) { <app-pname [id]="x.playerId" [name]="x.name" [size]="24" /> ({{ x.basePrice | inr }} base){{ $last ? '' : ', ' }} }</p>
                 }
                 <p class="small muted">{{ ad.disclaimer }}</p>
               </section>
             }
             <section class="card"><h2>Bidding history</h2>
-              @for (b of a.bids; track b.id) { <div class="list-item"><strong>{{ b.franchise }}</strong><span class="spacer"></span>{{ b.amount | inr }}<span class="small muted">{{ b.placedAt | date: 'HH:mm:ss' }}</span></div> }
+              @for (b of a.bids; track b.id) { <div class="list-item"><app-team [key]="b.franchise" [size]="22" /><span class="spacer"></span>{{ b.amount | inr }}<span class="small muted">{{ b.placedAt | date: 'HH:mm:ss' }}</span></div> }
               @empty { <p class="muted">No bids yet.</p> }
             </section>
           </div>

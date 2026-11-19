@@ -1,4 +1,5 @@
 import { DatePipe } from '@angular/common';
+import { PlayerName } from '../../shared/media';
 import { Component, inject, signal } from '@angular/core';
 import { rxResource } from '../../core/resource';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -17,7 +18,7 @@ import { PageHeader, StateView, StatusChip } from '../../shared/ui';
 
 @Component({
   selector: 'app-medical',
-  imports: [PageHeader, StateView, StatusChip, RouterLink, WordsPipe, DatePipe, ReactiveFormsModule, MatButtonModule, MatIconModule, MatFormFieldModule, MatInputModule,
+  imports: [PlayerName, PageHeader, StateView, StatusChip, WordsPipe, DatePipe, ReactiveFormsModule, MatButtonModule, MatIconModule, MatFormFieldModule, MatInputModule,
     MatSelectModule, MatProgressBarModule],
   template: `
     <div class="page">
@@ -26,7 +27,7 @@ import { PageHeader, StateView, StatusChip } from '../../shared/ui';
         <app-state [loading]="availability.isLoading()" [error]="availability.error()" (retry)="availability.reload()">
           <table class="data"><tr><th>Player</th><th>Role</th><th>Status</th><th>Note</th><th>Expected back</th><th>Updated</th></tr>
             @for (a of availability.value() ?? []; track a.playerId) {
-              <tr><td><a [routerLink]="['/players', a.playerId]">{{ a.player }}</a>@if (a.isOverseas) { <span class="tag os">OS</span> }</td><td>{{ a.role }}</td>
+              <tr><td><app-pname [id]="a.playerId" [name]="a.player" [size]="24" />@if (a.isOverseas) { <span class="tag os">OS</span> }</td><td>{{ a.role }}</td>
                 <td><app-chip [text]="a.status | words" /></td><td class="small">{{ a.publicNote }}</td><td>{{ a.expectedReturn | date: 'd MMM' }}</td><td class="small muted">{{ a.updatedAt | date: 'd MMM' }}</td></tr>
             }</table>
         </app-state>

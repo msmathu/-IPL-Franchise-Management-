@@ -1,4 +1,5 @@
 import { DatePipe, DecimalPipe } from '@angular/common';
+import { PlayerName, TeamName } from '../../shared/media';
 import { Component, computed, inject } from '@angular/core';
 import { rxResource } from '../../core/resource';
 import { ChartConfiguration } from 'chart.js';
@@ -9,7 +10,7 @@ import { ChartView, PALETTE, PageHeader, StatCard, StateView, StatusChip } from 
 
 @Component({
   selector: 'app-dashboard',
-  imports: [PageHeader, StateView, StatCard, ChartView, StatusChip, RouterLink, InrPipe, WordsPipe, DatePipe, DecimalPipe],
+  imports: [PlayerName, TeamName, PageHeader, StateView, StatCard, ChartView, StatusChip, RouterLink, InrPipe, WordsPipe, DatePipe, DecimalPipe],
   template: `
     <div class="page">
       <app-page-header [title]="d()?.isLeagueView ? 'League overview' : (d()?.franchise ?? 'Dashboard')" [subtitle]="d()?.season" />
@@ -25,7 +26,7 @@ import { ChartView, PALETTE, PageHeader, StatCard, StateView, StatusChip } from 
               <section class="card"><h2>Standings (latest completed season)</h2>
                 <div class="table-wrap"><table class="data"><tr><th>#</th><th>Franchise</th><th class="num">P</th><th class="num">W</th><th class="num">L</th><th class="num">Pts</th><th class="num">NRR</th></tr>
                 @for (s of l.standings; track s.franchiseId; let i = $index) {
-                  <tr><td>{{ i + 1 }}</td><td><a [routerLink]="['/franchises', s.franchiseId]">{{ s.franchise }}</a></td><td class="num">{{ s.played }}</td><td class="num">{{ s.won }}</td>
+                  <tr><td>{{ i + 1 }}</td><td><a [routerLink]="['/franchises', s.franchiseId]"><app-team [key]="s.franchiseId" [label]="s.franchise" /></a></td><td class="num">{{ s.played }}</td><td class="num">{{ s.won }}</td>
                     <td class="num">{{ s.lost }}</td><td class="num"><strong>{{ s.points }}</strong></td><td class="num">{{ s.netRunRate | number: '1.3-3' }}</td></tr>
                 }</table></div></section>
               <section class="card"><h2>Auction spend this season</h2><app-chart [config]="auctionChart()" /></section>
@@ -62,14 +63,14 @@ import { ChartView, PALETTE, PageHeader, StatCard, StateView, StatusChip } from 
                 @for (n of dr.needs; track n.need) { <div class="list-item"><app-chip [text]="n.severity >= 3 ? 'Urgent' : n.severity === 2 ? 'Important' : 'Nice to have'" /><strong>{{ n.need }}</strong><span class="muted small">{{ n.detail }}</span></div> }
                 @empty { <p class="muted">The squad is balanced.</p> }</section>
               <section class="card"><h2>Top rated players</h2>
-                @for (p of dr.topRated; track p.playerId) { <div class="list-item"><a [routerLink]="['/players', p.playerId]">{{ p.name }}</a><span class="muted small">{{ p.role }}</span><span class="spacer"></span><strong>{{ p.rating }}</strong></div> }</section>
+                @for (p of dr.topRated; track p.playerId) { <div class="list-item"><app-pname [id]="p.playerId" [name]="p.name" [size]="24" /><span class="muted small">{{ p.role }}</span><span class="spacer"></span><strong>{{ p.rating }}</strong></div> }</section>
             </div>
             <div class="grid cols-3">
               <section class="card"><h2>Auction targets</h2>
-                @for (t of dr.auctionTargets; track t.playerId) { <div class="list-item"><a [routerLink]="['/players', t.playerId]">{{ t.name }}</a><span class="muted small">{{ t.fitReason }}</span><span class="spacer"></span><span class="small">{{ t.low | inr }}–{{ t.high | inr }}</span></div> }
+                @for (t of dr.auctionTargets; track t.playerId) { <div class="list-item"><app-pname [id]="t.playerId" [name]="t.name" [size]="24" /><span class="muted small">{{ t.fitReason }}</span><span class="spacer"></span><span class="small">{{ t.low | inr }}–{{ t.high | inr }}</span></div> }
                 @empty { <p class="muted">No targets yet.</p> }<p class="disclaimer">Model estimates, not official prices.</p></section>
               <section class="card"><h2>Trade opportunities</h2>
-                @for (g of dr.tradeOpportunities; track g.playerId) { <div class="list-item"><a [routerLink]="['/players', g.playerId]">{{ g.name }}</a><span class="muted small">{{ g.franchise }}</span><span class="spacer"></span><span class="good-text small">+{{ g.gap | inr }} vs price</span></div> }
+                @for (g of dr.tradeOpportunities; track g.playerId) { <div class="list-item"><app-pname [id]="g.playerId" [name]="g.name" [size]="24" /><app-team [key]="g.franchise" [size]="18" /><span class="spacer"></span><span class="good-text small">+{{ g.gap | inr }} vs price</span></div> }
                 @empty { <p class="muted">No clear undervalued players.</p> }</section>
               <section class="card"><h2>Scouting recommendations</h2>
                 @for (r of dr.scoutingRecommendations; track r.id) { <div class="list-item"><a [routerLink]="['/scouting/reports', r.id]">{{ r.player }}</a><span class="muted small">by {{ r.scout }}</span><span class="spacer"></span><app-chip [text]="r.recommendation | words" /></div> }
@@ -87,10 +88,10 @@ import { ChartView, PALETTE, PageHeader, StatCard, StateView, StatusChip } from 
             <div class="grid cols-3">
               <section class="card"><h2>Top run scorers (last season)</h2><app-chart [config]="runsChart()" [height]="220" /></section>
               <section class="card"><h2>In form</h2>
-                @for (p of c.inForm; track p.playerId) { <div class="list-item"><a [routerLink]="['/players', p.playerId]">{{ p.name }}</a><span class="spacer"></span><span class="good-text">▲ {{ p.rating }}</span></div> }
+                @for (p of c.inForm; track p.playerId) { <div class="list-item"><app-pname [id]="p.playerId" [name]="p.name" [size]="24" /><span class="spacer"></span><span class="good-text">▲ {{ p.rating }}</span></div> }
                 @empty { <p class="muted">No players clearly above their career level.</p> }</section>
               <section class="card"><h2>Out of form</h2>
-                @for (p of c.outOfForm; track p.playerId) { <div class="list-item"><a [routerLink]="['/players', p.playerId]">{{ p.name }}</a><span class="spacer"></span><span class="bad-text">▼ {{ p.rating }}</span></div> }
+                @for (p of c.outOfForm; track p.playerId) { <div class="list-item"><app-pname [id]="p.playerId" [name]="p.name" [size]="24" /><span class="spacer"></span><span class="bad-text">▼ {{ p.rating }}</span></div> }
                 @empty { <p class="muted">No players clearly below their career level.</p> }</section>
             </div>
           }

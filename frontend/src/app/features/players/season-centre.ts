@@ -1,4 +1,5 @@
 import { DatePipe, DecimalPipe, NgTemplateOutlet } from '@angular/common';
+import { PlayerName } from '../../shared/media';
 import { Component, computed, effect, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
@@ -18,7 +19,7 @@ const TEAMS = ['CSK', 'DC', 'GT', 'KKR', 'LSG', 'MI', 'PBKS', 'RCB', 'RR', 'SRH'
 
 @Component({
   selector: 'app-season-centre',
-  imports: [StateView, Monogram, RouterLink, DatePipe, DecimalPipe, NgTemplateOutlet, FormsModule, MatButtonToggleModule, MatFormFieldModule, MatIconModule, MatSelectModule, MatTooltipModule],
+  imports: [PlayerName, StateView, Monogram, RouterLink, DatePipe, DecimalPipe, NgTemplateOutlet, FormsModule, MatButtonToggleModule, MatFormFieldModule, MatIconModule, MatSelectModule, MatTooltipModule],
   template: `
     <div class="page">
       <section class="team-hero">
@@ -169,7 +170,7 @@ const TEAMS = ['CSK', 'DC', 'GT', 'KKR', 'LSG', 'MI', 'PBKS', 'RCB', 'RR', 'SRH'
     </ng-template>
     <ng-template #row let-x>
       <div class="brow" [class.first]="x.rank === 1"><span class="rank">{{ x.rank }}</span>
-        <span class="who">@if (x.playerId) { <a [routerLink]="['/players', x.playerId]">{{ x.name }}</a> } @else { {{ x.name }} } <span class="tcode">{{ x.teamCode }}</span></span>
+        <span class="who"><app-pname [id]="x.playerId" [name]="x.name" [team]="x.teamCode" [size]="24" /> <span class="tcode">{{ x.teamCode }}</span></span>
         <span class="val">{{ x.value }}</span><span class="det">{{ x.detail }}</span></div>
     </ng-template>
   `,

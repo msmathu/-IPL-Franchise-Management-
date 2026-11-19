@@ -78,6 +78,9 @@ public class PlayersController(PlayerService players, StatisticsService stats, R
     }
 
     /// <summary>Status of the free-photo import (Wikimedia Commons).</summary>
+    [HttpGet("photo-map"), HasPermission(Perm.PlayersRead)]
+    public Task<IReadOnlyDictionary<Guid, string>> PhotoMap(CancellationToken ct) => players.PhotoMapAsync(ct);
+
     [HttpGet("photos"), HasPermission(Perm.PlayersRead)]
     public Task<PhotoStatusDto> PhotoStatus([FromServices] PhotoImportRunner runner, [FromServices] AppDbContext db, CancellationToken ct) => runner.StatusAsync(db, ct);
 

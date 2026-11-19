@@ -181,3 +181,8 @@ img.monogram.logo { object-fit: contain; background: #fff; padding: 2px; }
 .topbar .mat-mdc-button, .topbar .mat-mdc-icon-button, .topbar .mat-mdc-button .mat-icon { color: var(--team-ink) !important; }
 [data-team='off'] .topbar .mat-mdc-button, [data-team='off'] .topbar .mat-mdc-icon-button, [data-team='off'] .topbar .mat-mdc-button .mat-icon { color: var(--text) !important; }
 .team-hero .hero-btn { color: inherit !important; border-color: currentColor !important; --mdc-outlined-button-label-text-color: currentColor; }
+
+/* Faces and badges next to names */
+.pname, .tname { display: inline-flex; align-items: center; gap: 8px; vertical-align: middle; }
+.pname.sm { gap: 6px; }
+.pname a { color: inherit; } .pname a:hover { color: var(--team-accent); }

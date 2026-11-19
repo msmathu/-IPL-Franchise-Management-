@@ -1,4 +1,5 @@
 import { Component, computed, inject, signal } from '@angular/core';
+import { PlayerName, TeamName } from '../../shared/media';
 import { rxResource } from '../../core/resource';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatTabsModule } from '@angular/material/tabs';
@@ -10,7 +11,7 @@ import { ChartView, PALETTE, PageHeader, StatCard, StateView, StatusChip } from 
 
 @Component({
   selector: 'app-valuation',
-  imports: [PageHeader, StateView, StatCard, StatusChip, ChartView, RouterLink, InrPipe, MatTabsModule, MatButtonToggleModule],
+  imports: [PlayerName, TeamName, PageHeader, StateView, StatCard, StatusChip, ChartView, InrPipe, MatTabsModule, MatButtonToggleModule],
   template: `
     <div class="page">
       <app-page-header title="Player valuation & recommendations" subtitle="Explainable model estimates — never official prices" />
@@ -33,7 +34,7 @@ import { ChartView, PALETTE, PageHeader, StatCard, StateView, StatusChip } from 
                 <section class="card table-wrap"><h2>Recommended auction targets</h2>
                   <table class="data"><tr><th>Player</th><th>Role</th><th class="num">Age</th><th class="num">Rating</th><th class="num">Base</th><th class="num">Model range</th><th>Why</th></tr>
                     @for (t of s.targets; track t.playerId) {
-                      <tr><td><a [routerLink]="['/players', t.playerId]">{{ t.name }}</a>@if (t.isOverseas) { <span class="tag os">OS</span> }</td><td>{{ t.role }}</td><td class="num">{{ t.age }}</td>
+                      <tr><td><app-pname [id]="t.playerId" [name]="t.name" [size]="24" />@if (t.isOverseas) { <span class="tag os">OS</span> }</td><td>{{ t.role }}</td><td class="num">{{ t.age }}</td>
                         <td class="num">{{ t.rating }}</td><td class="num">{{ t.basePrice | inr }}</td><td class="num">{{ t.low | inr }} – {{ t.high | inr }}</td><td class="small">{{ t.fitReason }}</td></tr>
                     }</table>
                   <p class="disclaimer">{{ s.disclaimer }}</p></section>
@@ -50,7 +51,7 @@ import { ChartView, PALETTE, PageHeader, StatCard, StateView, StatusChip } from 
               <app-state [loading]="gaps.isLoading()" [error]="gaps.error()" [empty]="!gaps.value()?.length" (retry)="gaps.reload()">
                 <table class="data"><tr><th>Player</th><th>Role</th><th>Team</th><th class="num">Rating</th><th class="num">Current price</th><th class="num">Model mid</th><th class="num">Difference</th></tr>
                   @for (g of gaps.value() ?? []; track g.playerId) {
-                    <tr><td><a [routerLink]="['/players', g.playerId]">{{ g.name }}</a></td><td>{{ g.role }}</td><td>{{ g.franchise }}</td><td class="num">{{ g.rating }}</td>
+                    <tr><td><app-pname [id]="g.playerId" [name]="g.name" [size]="24" /></td><td>{{ g.role }}</td><td><app-team [key]="g.franchise" [size]="20" /></td><td class="num">{{ g.rating }}</td>
                       <td class="num">{{ g.referencePrice | inr }}</td><td class="num">{{ g.modelMid | inr }}</td><td class="num" [class.good-text]="g.gap > 0" [class.bad-text]="g.gap < 0">{{ g.gap | inr }}</td></tr>
                   }</table>
                 <p class="disclaimer">Comparisons use the model's mid estimate against the current squad price. Use them to start a discussion, not as a verdict.</p>

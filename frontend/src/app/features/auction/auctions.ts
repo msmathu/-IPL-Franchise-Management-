@@ -1,4 +1,5 @@
 import { DatePipe } from '@angular/common';
+import { PlayerName, TeamName } from '../../shared/media';
 import { Component, computed, inject, input, signal } from '@angular/core';
 import { rxResource } from '../../core/resource';
 import { FormsModule } from '@angular/forms';
@@ -73,7 +74,7 @@ export class AuctionsPage {
 
 @Component({
   selector: 'app-auction-setup',
-  imports: [PageHeader, StateView, StatusChip, RouterLink, InrPipe, WordsPipe, FormsModule, MatButtonModule, MatIconModule, MatFormFieldModule, MatInputModule, MatCheckboxModule],
+  imports: [PlayerName, PageHeader, StateView, StatusChip, RouterLink, InrPipe, WordsPipe, FormsModule, MatButtonModule, MatIconModule, MatFormFieldModule, MatInputModule, MatCheckboxModule],
   template: `
     <div class="page">
       <app-page-header title="Player pool & configuration">
@@ -106,7 +107,7 @@ export class AuctionsPage {
           </div>
           <div class="eligible">
             @for (p of eligible.value()?.items ?? []; track p.id) {
-              <label class="list-item"><mat-checkbox [checked]="chosen().includes(p.id)" (change)="toggle(p.id)" />{{ p.fullName }}<span class="muted small">{{ p.role }} · {{ p.country }} · {{ p.isCapped ? 'Capped' : 'Uncapped' }}</span></label>
+              <label class="list-item"><mat-checkbox [checked]="chosen().includes(p.id)" (change)="toggle(p.id)" /><app-pname [id]="p.id" [name]="p.fullName" [size]="24" [link]="false" /><span class="muted small">{{ p.role }} · {{ p.country }} · {{ p.isCapped ? 'Capped' : 'Uncapped' }}</span></label>
             } @empty { <p class="muted">No unsigned players available for auction.</p> }
           </div>
           <p class="muted small">Only players marked "available for auction" and not signed by a franchise can be added. Base prices must respect the season's minimum.</p>
@@ -118,7 +119,7 @@ export class AuctionsPage {
           <div class="table-wrap"><table class="data">
             <tr><th>Set</th><th class="num">Lot</th><th>Player</th><th>Role</th><th>Country</th><th class="num">Base</th><th>Status</th><th class="num">Bid / price</th><th>Round</th><th></th></tr>
             @for (l of lots.value() ?? []; track l.id) {
-              <tr><td>{{ l.setNumber }}. {{ l.setName }}@if (l.setName.startsWith('Provisional')) { <span class="tag os">provisional</span> }</td><td class="num">{{ l.lotNumber }}</td><td><a [routerLink]="['/players', l.playerId]">{{ l.playerName }}</a>@if (l.isOverseas) { <span class="tag os">OS</span> }</td>
+              <tr><td>{{ l.setNumber }}. {{ l.setName }}@if (l.setName.startsWith('Provisional')) { <span class="tag os">provisional</span> }</td><td class="num">{{ l.lotNumber }}</td><td><app-pname [id]="l.playerId" [name]="l.playerName" [size]="24" />@if (l.isOverseas) { <span class="tag os">OS</span> }</td>
                 <td>{{ l.role }}</td><td>{{ l.country }}</td><td class="num">{{ l.basePrice | inr }}</td><td><app-chip [text]="l.status | words" /></td>
                 <td class="num">{{ l.currentBid | inr }} {{ l.currentBidFranchise ?? '' }}</td><td>{{ l.round }}</td>
                 <td>@if (auth.has(P.auctionsManage) && l.status === 'Pending') { <button mat-icon-button (click)="removeLot(l.id)" aria-label="Remove"><mat-icon>delete</mat-icon></button> }</td></tr>
@@ -182,7 +183,7 @@ export class AuctionSetupPage {
 
 @Component({
   selector: 'app-auction-results',
-  imports: [PageHeader, StateView, StatCard, ChartView, RouterLink, InrPipe, MatButtonModule, MatIconModule],
+  imports: [PlayerName, TeamName, PageHeader, StateView, StatCard, ChartView, InrPipe, MatButtonModule, MatIconModule],
   template: `
     <div class="page">
       <app-state [loading]="res.isLoading()" [error]="res.error()" (retry)="res.reload()">
@@ -200,14 +201,14 @@ export class AuctionSetupPage {
             <section class="card"><h2>Spending by franchise</h2><app-chart [config]="chart()" /></section>
             <section class="card"><h2>Franchise summary</h2>
               <table class="data"><tr><th>Franchise</th><th class="num">Players</th><th class="num">Spent</th><th class="num">Average</th><th class="num">Purse left</th></tr>
-                @for (f of r.byFranchise; track f.franchiseId) { <tr><td>{{ f.franchise }}</td><td class="num">{{ f.players }}</td><td class="num">{{ f.spent | inr }}</td><td class="num">{{ f.averagePrice | inr }}</td><td class="num">{{ f.purseRemaining | inr }}</td></tr> }</table></section>
+                @for (f of r.byFranchise; track f.franchiseId) { <tr><td><app-team [key]="f.franchiseId" [label]="f.franchise" /></td><td class="num">{{ f.players }}</td><td class="num">{{ f.spent | inr }}</td><td class="num">{{ f.averagePrice | inr }}</td><td class="num">{{ f.purseRemaining | inr }}</td></tr> }</table></section>
           </div>
           <div class="grid cols-2">
             <section class="card"><h2>Sold players</h2>
-              @for (s of r.soldPlayers; track s.playerId) { <div class="list-item"><a [routerLink]="['/players', s.playerId]">{{ s.player }}</a><span class="muted small">{{ s.role }}</span><span class="spacer"></span><span>{{ s.franchise }}</span><strong>{{ s.price | inr }}</strong></div> }
+              @for (s of r.soldPlayers; track s.playerId) { <div class="list-item"><app-pname [id]="s.playerId" [name]="s.player" [size]="24" /><span class="muted small">{{ s.role }}</span><span class="spacer"></span><span>{{ s.franchise }}</span><strong>{{ s.price | inr }}</strong></div> }
               @empty { <p class="muted">None yet.</p> }</section>
             <section class="card"><h2>Unsold players</h2>
-              @for (s of r.unsoldPlayers; track s.playerId) { <div class="list-item"><a [routerLink]="['/players', s.playerId]">{{ s.player }}</a><span class="muted small">{{ s.role }}</span><span class="spacer"></span>base {{ s.basePrice | inr }}</div> }
+              @for (s of r.unsoldPlayers; track s.playerId) { <div class="list-item"><app-pname [id]="s.playerId" [name]="s.player" [size]="24" /><span class="muted small">{{ s.role }}</span><span class="spacer"></span>base {{ s.basePrice | inr }}</div> }
               @empty { <p class="muted">None.</p> }</section>
           </div>
         }

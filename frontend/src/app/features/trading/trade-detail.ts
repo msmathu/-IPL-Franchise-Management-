@@ -1,4 +1,5 @@
 import { DatePipe } from '@angular/common';
+import { PlayerName } from '../../shared/media';
 import { Component, computed, inject, input, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { rxResource } from '../../core/resource';
@@ -19,7 +20,7 @@ import { SquadSelect, TradeImpact } from './trade-editor';
 
 @Component({
   selector: 'app-trade-detail',
-  imports: [PageHeader, StateView, StatusChip, Monogram, TradeImpact, SquadSelect, RouterLink, InrPipe, WordsPipe, DatePipe, FormsModule, MatButtonModule,
+  imports: [PlayerName, PageHeader, StateView, StatusChip, Monogram, TradeImpact, SquadSelect, InrPipe, WordsPipe, DatePipe, FormsModule, MatButtonModule,
     MatIconModule, MatFormFieldModule, MatInputModule, MatCheckboxModule],
   template: `
     <div class="page">
@@ -35,7 +36,7 @@ import { SquadSelect, TradeImpact } from './trade-editor';
               <section class="card">
                 <div class="row"><app-monogram [name]="side.f.name" [color]="side.f.primaryColor" /><h2>{{ side.f.name }} gives</h2></div>
                 @for (p of side.players; track p.playerId) {
-                  <div class="list-item"><a [routerLink]="['/players', p.playerId]">{{ p.name }}</a>@if (p.isOverseas) { <span class="tag os">OS</span> }
+                  <div class="list-item"><app-pname [id]="p.playerId" [name]="p.name" [size]="24" />@if (p.isOverseas) { <span class="tag os">OS</span> }
                     <span class="muted small">{{ p.role }}</span><span class="spacer"></span><span class="small">salary {{ p.contractSalary | inr }}</span>
                     @if (p.availability !== 'Available') { <app-chip [text]="p.availability" /> }</div>
                 } @empty { <p class="muted">No players.</p> }

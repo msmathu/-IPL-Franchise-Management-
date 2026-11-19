@@ -1,4 +1,5 @@
 import { DatePipe } from '@angular/common';
+import { PlayerName } from '../../shared/media';
 import { Component, computed, inject, signal } from '@angular/core';
 import { rxResource } from '../../core/resource';
 import { FormsModule } from '@angular/forms';
@@ -20,7 +21,7 @@ import { ChartView, PALETTE, PageHeader, StatCard, StateView, StatusChip, confir
 
 @Component({
   selector: 'app-finance',
-  imports: [PageHeader, StateView, StatCard, StatusChip, ChartView, RouterLink, InrPipe, WordsPipe, DatePipe, FormsModule, MatButtonModule, MatIconModule,
+  imports: [PlayerName, PageHeader, StateView, StatCard, StatusChip, ChartView, InrPipe, WordsPipe, DatePipe, FormsModule, MatButtonModule, MatIconModule,
     MatFormFieldModule, MatInputModule, MatSelectModule, MatTabsModule, MatPaginatorModule],
   template: `
     <div class="page">
@@ -98,7 +99,7 @@ import { ChartView, PALETTE, PageHeader, StatCard, StateView, StatusChip, confir
               <app-state [loading]="contracts.isLoading()" [error]="contracts.error()" [empty]="!contracts.value()?.length" (retry)="contracts.reload()">
                 <table class="data"><tr><th>Player</th><th>Role</th><th>Term</th><th class="num">Annual salary</th><th>Acquisition</th><th>Status</th><th>Payment schedule</th><th></th></tr>
                   @for (c of contracts.value() ?? []; track c.id) {
-                    <tr><td><a [routerLink]="['/players', c.playerId]">{{ c.player }}</a></td><td>{{ c.role }}</td><td class="small">{{ c.startSeason }} → {{ c.endSeason }}<br />{{ c.startDate | date: 'd MMM yy' }} – {{ c.endDate | date: 'd MMM yy' }}</td>
+                    <tr><td><app-pname [id]="c.playerId" [name]="c.player" [size]="24" /></td><td>{{ c.role }}</td><td class="small">{{ c.startSeason }} → {{ c.endSeason }}<br />{{ c.startDate | date: 'd MMM yy' }} – {{ c.endDate | date: 'd MMM yy' }}</td>
                       <td class="num">{{ c.annualSalary | inr }}</td><td>{{ c.acquisition | words }}</td><td><app-chip [text]="c.status" /></td>
                       <td class="small">@for (p of c.payments; track p.id) {
                         <div>{{ p.dueDate | date: 'd MMM' }} · {{ p.amount | inr }} · <span [class.good-text]="p.status === 'Paid'">{{ p.status }}</span>

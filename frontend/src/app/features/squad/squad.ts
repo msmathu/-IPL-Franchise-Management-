@@ -1,4 +1,5 @@
 import { DatePipe } from '@angular/common';
+import { PlayerName } from '../../shared/media';
 import { Component, computed, inject, input, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
@@ -17,7 +18,7 @@ import { ChartView, PALETTE, PageHeader, PlayerAvatar, StatCard, StateView, Stat
 
 @Component({
   selector: 'app-squad',
-  imports: [StateView, StatCard, StatusChip, ChartView, PlayerAvatar, PlayerCard, RouterLink, InrPipe, WordsPipe, DatePipe, MatButtonToggleModule,
+  imports: [PlayerName, StateView, StatCard, StatusChip, ChartView, PlayerCard, InrPipe, WordsPipe, DatePipe, MatButtonToggleModule,
     MatIconModule, MatSelectModule, FormsModule],
   template: `
     <div class="page">
@@ -80,12 +81,12 @@ import { ChartView, PALETTE, PageHeader, PlayerAvatar, StatCard, StateView, Stat
           <section class="card table-wrap">
             @if (group() === 'departed') {
               <table class="data"><tr><th>Player</th><th>Status</th><th>Left</th></tr>
-                @for (p of s.departed; track p.playerId) { <tr><td><a [routerLink]="['/players', p.playerId]">{{ p.name }}</a></td><td><app-chip [text]="p.status | words" /></td><td>{{ p.leftAt | date: 'd MMM yyyy' }}</td></tr> }
+                @for (p of s.departed; track p.playerId) { <tr><td><app-pname [id]="p.playerId" [name]="p.name" [size]="24" /></td><td><app-chip [text]="p.status | words" /></td><td>{{ p.leftAt | date: 'd MMM yyyy' }}</td></tr> }
                 @empty { <tr><td colspan="3" class="muted">No departures this season.</td></tr> }</table>
             } @else {
               <table class="data"><tr><th>Player</th><th>Role</th><th class="num">Age</th><th>Acquired</th><th class="num">Price</th><th>Availability</th><th class="num">Rating</th><th>Form</th></tr>
                 @for (p of shown(); track p.playerId) {
-                  <tr><td><span class="player-cell"><app-avatar [name]="p.name" [photoUrl]="p.photoUrl" [size]="28" /><a [routerLink]="['/players', p.playerId]">{{ p.name }}</a></span>@if (p.isOverseas) { <span class="tag os">OS</span> }@if (p.isWicketKeeper) { <span class="tag">WK</span> }@if (!p.isCapped) { <span class="tag">Uncapped</span> }</td>
+                  <tr><td><app-pname [id]="p.playerId" [name]="p.name" [size]="28" />@if (p.isOverseas) { <span class="tag os">OS</span> }@if (p.isWicketKeeper) { <span class="tag">WK</span> }@if (!p.isCapped) { <span class="tag">Uncapped</span> }</td>
                     <td>{{ p.role }}</td><td class="num">{{ p.age ?? '—' }}</td><td>{{ p.acquisition === 'Initial' ? 'Squad 2026' : (p.acquisition | words) }}</td><td class="num">{{ p.price ? (p.price | inr) : '—' }}</td>
                     <td><app-chip [text]="p.availability" /></td><td class="num">{{ p.rating ?? '—' }}</td>
                     <td [class.good-text]="p.formTrend === 'Rising'" [class.bad-text]="p.formTrend === 'Falling'">{{ p.formTrend }}</td></tr>

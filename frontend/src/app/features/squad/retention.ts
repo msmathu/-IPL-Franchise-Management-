@@ -1,4 +1,5 @@
 import { DatePipe } from '@angular/common';
+import { PlayerName } from '../../shared/media';
 import { Component, computed, effect, inject, signal } from '@angular/core';
 import { rxResource } from '../../core/resource';
 import { FormsModule } from '@angular/forms';
@@ -17,7 +18,7 @@ import { PageHeader, StatCard, StateView, StatusChip, confirmAction } from '../.
 
 @Component({
   selector: 'app-retention',
-  imports: [PageHeader, StateView, StatCard, StatusChip, RouterLink, InrPipe, DatePipe, FormsModule, MatButtonModule, MatCheckboxModule, MatIconModule,
+  imports: [PlayerName, PageHeader, StateView, StatCard, StatusChip, InrPipe, DatePipe, FormsModule, MatButtonModule, MatCheckboxModule, MatIconModule,
     MatFormFieldModule, MatInputModule, MatTabsModule],
   template: `
     <div class="page">
@@ -40,7 +41,7 @@ import { PageHeader, StatCard, StateView, StatusChip, confirmAction } from '../.
                   @for (p of o.squad; track p.playerId) {
                     <div class="list-item">
                       <mat-checkbox [checked]="picked().includes(p.playerId)" (change)="toggle(p.playerId)" [disabled]="o.hasSubmitted" />
-                      <a [routerLink]="['/players', p.playerId]">{{ p.name }}</a>@if (p.isOverseas) { <span class="tag os">OS</span> }@if (!p.isCapped) { <span class="tag">Uncapped</span> }
+                      <app-pname [id]="p.playerId" [name]="p.name" [size]="24" />@if (p.isOverseas) { <span class="tag os">OS</span> }@if (!p.isCapped) { <span class="tag">Uncapped</span> }
                       <span class="muted small">{{ p.role }}@if (p.age !== null && p.age !== undefined) { · {{ p.age }}y }</span><span class="spacer"></span>
                       @if (p.availability !== 'Available') { <app-chip [text]="p.availability" /> }
                       <span class="small">{{ p.currentSalary | inr }}</span>
@@ -50,7 +51,7 @@ import { PageHeader, StatCard, StateView, StatusChip, confirmAction } from '../.
                 </section>
                 <section class="card"><h2>Simulation</h2>
                   @if (sim(); as s) {
-                    @for (slot of s.slots; track slot.playerId) { <div class="list-item"><strong>#{{ slot.slotNumber }}</strong><span>{{ slot.name }}</span><span class="muted small">{{ slot.category }}</span><span class="spacer"></span>{{ slot.cost | inr }}</div> }
+                    @for (slot of s.slots; track slot.playerId) { <div class="list-item"><strong>#{{ slot.slotNumber }}</strong><app-pname [id]="slot.playerId" [name]="slot.name" [size]="24" /><span class="muted small">{{ slot.category }}</span><span class="spacer"></span>{{ slot.cost | inr }}</div> }
                     @empty { <p class="muted">Select players to see the cost.</p> }
                     <div class="grid stats">
                       <app-stat label="Total cost" [value]="s.totalCost | inr" />
@@ -88,7 +89,7 @@ import { PageHeader, StatCard, StateView, StatusChip, confirmAction } from '../.
             <mat-tab label="Releases & history">
               <div class="grid cols-2 tabpad">
                 <section class="card"><h2>Released players</h2>
-                  @for (r of o.releases; track r.id) { <div class="list-item"><a [routerLink]="['/players', r.playerId]">{{ r.name }}</a><span class="muted small">{{ r.reason }}</span><span class="spacer"></span>{{ r.releasedAt | date: 'd MMM yyyy' }}</div> }
+                  @for (r of o.releases; track r.id) { <div class="list-item"><app-pname [id]="r.playerId" [name]="r.name" [size]="24" /><span class="muted small">{{ r.reason }}</span><span class="spacer"></span>{{ r.releasedAt | date: 'd MMM yyyy' }}</div> }
                   @empty { <p class="muted">No releases.</p> }</section>
                 <section class="card"><h2>Retention history</h2>
                   @for (h of history.value() ?? []; track $index) { <div class="list-item"><strong>{{ h.year }}</strong><span>{{ h.player }}</span><span class="muted small">{{ h.category }} #{{ h.slot }}</span><span class="spacer"></span>{{ h.cost | inr }}</div> }

@@ -1,4 +1,5 @@
 import { DatePipe } from '@angular/common';
+import { PlayerName } from '../../shared/media';
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -17,7 +18,7 @@ import { PlayerPicker } from '../players/player-profile';
 
 @Component({
   selector: 'app-replacements',
-  imports: [PageHeader, StateView, StatusChip, PlayerPicker, RouterLink, DatePipe, InrPipe, FormsModule, MatButtonModule, MatFormFieldModule,
+  imports: [PlayerName, PageHeader, StateView, StatusChip, PlayerPicker, DatePipe, InrPipe, FormsModule, MatButtonModule, MatFormFieldModule,
     MatIconModule, MatInputModule, MatSelectModule],
   template: `
     <div class="page">
@@ -39,7 +40,7 @@ import { PlayerPicker } from '../players/player-profile';
               <mat-form-field><mat-label>Injured player</mat-label>
                 <mat-select [(ngModel)]="injuredId">@for (p of injured(); track p.playerId) { <mat-option [value]="p.playerId">{{ p.name }}{{ p.price ? ' · ' : '' }}{{ p.price ? (p.price | inr) : '' }}</mat-option> }</mat-select></mat-form-field>
               <app-player-picker label="Replacement (unsigned player)" (picked)="replacement.set($event)" />
-              @if (replacement(); as rp) { <span class="chip">{{ rp.fullName }}{{ rp.franchise ? ' · signed by ' + rp.franchise.code : '' }}</span> }
+              @if (replacement(); as rp) { <span class="chip"><app-pname [id]="rp.id" [name]="rp.fullName" [size]="20" />{{ rp.franchise ? ' · signed by ' + rp.franchise.code : '' }}</span> }
               <mat-form-field><mat-label>Fee (₹ lakh)</mat-label><input matInput type="number" min="0" [(ngModel)]="feeLakh" /></mat-form-field>
               <mat-form-field class="wide"><mat-label>Reason / medical summary (no confidential details)</mat-label><input matInput [(ngModel)]="reason" /></mat-form-field>
               <button mat-flat-button [disabled]="!injuredId || !replacement() || feeLakh === null" (click)="submit()"><mat-icon>send</mat-icon>Send to league</button>
@@ -56,8 +57,8 @@ import { PlayerPicker } from '../players/player-profile';
               <tr>
                 <td>{{ r.requestedAt | date: 'd MMM yyyy' }}</td>
                 @if (auth.user()?.isLeagueWide) { <td><strong>{{ r.franchiseCode }}</strong></td> }
-                <td><a [routerLink]="['/players', r.injuredPlayerId]">{{ r.injuredPlayerName }}</a>@if (r.injuredPlayerFee) { <div class="small muted">fee {{ r.injuredPlayerFee | inr }}</div> }</td>
-                <td><a [routerLink]="['/players', r.replacementPlayerId]">{{ r.replacementPlayerName }}</a>@if (r.replacementIsOverseas) { <span class="tag os">OS</span> }</td>
+                <td><app-pname [id]="r.injuredPlayerId" [name]="r.injuredPlayerName" [size]="24" />@if (r.injuredPlayerFee) { <div class="small muted">fee {{ r.injuredPlayerFee | inr }}</div> }</td>
+                <td><app-pname [id]="r.replacementPlayerId" [name]="r.replacementPlayerName" [size]="24" />@if (r.replacementIsOverseas) { <span class="tag os">OS</span> }</td>
                 <td class="num">{{ r.fee | inr }}</td>
                 <td class="small">{{ r.reason ?? '—' }}@if (r.decisionNote) { <div class="muted">League: {{ r.decisionNote }}</div> }</td>
                 <td><app-chip [text]="r.status" /></td>

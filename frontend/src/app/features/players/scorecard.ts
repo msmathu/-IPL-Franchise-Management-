@@ -1,4 +1,5 @@
 import { DatePipe } from '@angular/common';
+import { PlayerName } from '../../shared/media';
 import { Component, computed, inject, input } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -11,7 +12,7 @@ import { Monogram, StateView } from '../../shared/ui';
 /** Full scorecard of one match (batting, bowling, extras, fall of wickets), from the ball-by-ball data. */
 @Component({
   selector: 'app-scorecard',
-  imports: [StateView, Monogram, RouterLink, DatePipe, MatButtonModule, MatIconModule],
+  imports: [PlayerName, StateView, Monogram, RouterLink, DatePipe, MatButtonModule, MatIconModule],
   template: `
     <div class="page">
       <a mat-button routerLink="/season"><mat-icon>arrow_back</mat-icon>Fixtures &amp; Table</a>
@@ -45,7 +46,7 @@ import { Monogram, StateView } from '../../shared/ui';
                 <tr><th>Batter</th><th></th><th class="num">R</th><th class="num">B</th><th class="num">4s</th><th class="num">6s</th><th class="num">SR</th></tr>
                 @for (b of inn.batting; track b.id) {
                   <tr [class.top]="b.runs >= 50">
-                    <td>@if (s.linkedPlayers[b.id]; as pid) { <a [routerLink]="['/players', pid]">{{ b.name }}</a> } @else { {{ b.name }} }</td>
+                    <td><app-pname [id]="s.linkedPlayers[b.id]" [name]="b.name" [size]="22" /></td>
                     <td class="muted small">{{ b.how }}</td>
                     <td class="num"><strong>{{ b.runs }}</strong></td><td class="num">{{ b.balls }}</td><td class="num">{{ b.fours }}</td><td class="num">{{ b.sixes }}</td>
                     <td class="num">{{ b.strikeRate ?? '—' }}</td>
@@ -60,7 +61,7 @@ import { Monogram, StateView } from '../../shared/ui';
                 <tr><th>Bowler</th><th class="num">O</th><th class="num">M</th><th class="num">R</th><th class="num">W</th><th class="num">Econ</th><th class="num">Dots</th><th class="num">Wd</th><th class="num">Nb</th></tr>
                 @for (w of inn.bowling; track w.id) {
                   <tr [class.top]="w.wickets >= 3">
-                    <td>@if (s.linkedPlayers[w.id]; as pid) { <a [routerLink]="['/players', pid]">{{ w.name }}</a> } @else { {{ w.name }} }</td>
+                    <td><app-pname [id]="s.linkedPlayers[w.id]" [name]="w.name" [size]="22" /></td>
                     <td class="num">{{ w.overs }}</td><td class="num">{{ w.maidens }}</td><td class="num">{{ w.runs }}</td><td class="num"><strong>{{ w.wickets }}</strong></td>
                     <td class="num">{{ w.economy ?? '—' }}</td><td class="num">{{ w.dots }}</td><td class="num">{{ w.wides }}</td><td class="num">{{ w.noBalls }}</td>
                   </tr>

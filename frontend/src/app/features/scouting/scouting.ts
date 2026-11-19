@@ -1,4 +1,5 @@
 import { DatePipe } from '@angular/common';
+import { PlayerName, TeamName } from '../../shared/media';
 import { Component, inject, input, signal } from '@angular/core';
 import { rxResource } from '../../core/resource';
 import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -21,7 +22,7 @@ const RATINGS = ['techniqueRating', 'temperamentRating', 'fitnessRating', 'poten
 
 @Component({
   selector: 'app-scouting',
-  imports: [PageHeader, StateView, StatusChip, PlayerPicker, RouterLink, WordsPipe, DatePipe, FormsModule, ReactiveFormsModule, MatButtonModule, MatIconModule,
+  imports: [PlayerName, TeamName, PageHeader, StateView, StatusChip, PlayerPicker, WordsPipe, DatePipe, FormsModule, ReactiveFormsModule, MatButtonModule, MatIconModule,
     MatFormFieldModule, MatInputModule, MatSelectModule, MatSliderModule, MatTabsModule],
   template: `
     <div class="page">
@@ -100,7 +101,7 @@ const RATINGS = ['techniqueRating', 'temperamentRating', 'fitnessRating', 'poten
             <app-state [loading]="emerging.isLoading()" [error]="emerging.error()" [empty]="!emerging.value()?.length" (retry)="emerging.reload()">
               <table class="data"><tr><th>Player</th><th class="num">Age</th><th>Role</th><th>Country</th><th>Team</th><th class="num">Rating</th><th class="num">Potential</th><th class="num">Form</th><th>Confidence</th><th class="num">Our reports</th></tr>
                 @for (e of emerging.value() ?? []; track e.playerId) {
-                  <tr><td><a [routerLink]="['/players', e.playerId]">{{ e.name }}</a></td><td class="num">{{ e.age }}</td><td>{{ e.role }}</td><td>{{ e.country }}</td><td>{{ e.franchise ?? 'Unsigned' }}</td>
+                  <tr><td><app-pname [id]="e.playerId" [name]="e.name" [size]="24" /></td><td class="num">{{ e.age }}</td><td>{{ e.role }}</td><td>{{ e.country }}</td><td>@if (e.franchise) { <app-team [key]="e.franchise" [size]="20" /> } @else { Unsigned }</td>
                     <td class="num">{{ e.rating }}</td><td class="num">{{ e.potentialScore }}</td><td class="num">{{ e.formScore }}</td><td>{{ e.confidence }}</td><td class="num">{{ e.scoutReports }}</td></tr>
                 }</table>
               <p class="disclaimer">Model-generated ranking from recorded statistics only. Open a player's profile to see exactly how each rating was calculated.</p>

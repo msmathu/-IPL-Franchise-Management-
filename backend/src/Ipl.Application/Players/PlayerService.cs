@@ -188,6 +188,13 @@ public class PlayerService(IAppDbContext db, ICurrentUser me, IAuditService audi
         await db.SaveChangesAsync(ct);
     }
 
+    /// <summary>Photo URL of every player that has one (small; the web app caches it to show faces next to names).</summary>
+    public async Task<IReadOnlyDictionary<Guid, string>> PhotoMapAsync(CancellationToken ct)
+    {
+        me.Require(Perm.PlayersRead);
+        return await db.Players.AsNoTracking().Where(p => p.PhotoUrl != null).ToDictionaryAsync(p => p.Id, p => p.PhotoUrl!, ct);
+    }
+
     public async Task<Guid> CreateAsync(SavePlayerRequest req, CancellationToken ct)
     {
         me.Require(Perm.PlayersManage);

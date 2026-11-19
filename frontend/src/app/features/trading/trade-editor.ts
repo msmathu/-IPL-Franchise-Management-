@@ -1,4 +1,5 @@
 import { Component, computed, effect, inject, input, output, signal } from '@angular/core';
+import { PlayerName, TeamName } from '../../shared/media';
 import { rxResource } from '../../core/resource';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -28,13 +29,13 @@ export interface TradeTerms {
 /** Shows before/after squad impact for both franchises, keeping salary, consideration and purse separate. */
 @Component({
   selector: 'app-trade-impact',
-  imports: [InrPipe],
+  imports: [TeamName, InrPipe],
   template: `
     @if (impact(); as i) {
       <div class="grid cols-2">
         @for (side of [i.initiator, i.counterparty]; track side.franchiseId) {
           <section class="card">
-            <h2>{{ side.franchiseName }}</h2>
+            <h2><app-team [key]="side.franchiseName" [size]="28" /></h2>
             <table class="data small">
               <tr><th></th><th class="num">Before</th><th class="num">After</th></tr>
               <tr><td>Squad size</td><td class="num">{{ side.before.total }}</td><td class="num" [class.bad-text]="side.after.total > side.after.maxSquad">{{ side.after.total }} / {{ side.after.maxSquad }}</td></tr>
@@ -68,12 +69,12 @@ export class TradeImpact {
 /** Player multi-select from a squad. */
 @Component({
   selector: 'app-squad-select',
-  imports: [MatCheckboxModule, InrPipe],
+  imports: [PlayerName, MatCheckboxModule, InrPipe],
   template: `
     <div class="squad-list">
       @for (p of players(); track p.playerId) {
         <label class="list-item"><mat-checkbox [checked]="selected().includes(p.playerId)" (change)="toggle(p.playerId)" />
-          <span>{{ p.name }}@if (p.isOverseas) { <span class="tag os">OS</span> }</span><span class="muted small">{{ p.role }}@if (p.age !== null && p.age !== undefined) { · {{ p.age }}y }</span>
+          <span><app-pname [id]="p.playerId ?? p.id" [name]="p.name" [size]="24" [link]="false" />@if (p.isOverseas) { <span class="tag os">OS</span> }</span><span class="muted small">{{ p.role }}@if (p.age !== null && p.age !== undefined) { · {{ p.age }}y }</span>
           <span class="spacer"></span><span class="small">{{ p.price | inr }}</span>
           @if (p.availability !== 'Available') { <span class="small warn-text">{{ p.availability }}</span> }</label>
       } @empty { <p class="muted">No players.</p> }
